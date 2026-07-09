@@ -1,0 +1,85 @@
+---
+interface Props {
+	label: string;
+	open?: boolean;
+	class?: string;
+}
+
+const { label, open = false, class: className } = Astro.props;
+const classes = ["accordion", className].filter(Boolean).join(" ");
+---
+
+<details class={classes} open={open || undefined}>
+	<summary>
+		<span class="accordion-label">{label}</span>
+	</summary>
+	<div class="accordion-content">
+		<slot />
+	</div>
+</details>
+
+<style>
+	.accordion {
+		margin: 1.35em 0 1.2em;
+	}
+
+	.accordion summary {
+		display: list-item;
+		width: fit-content;
+		margin-left: 1em;
+		padding: 0;
+		color: var(--text-color);
+		cursor: pointer;
+		list-style-position: outside;
+		transition:
+			color 0.2s ease,
+			transform 0.2s ease;
+	}
+
+	.accordion summary::-webkit-details-marker {
+		color: var(--accent-purple);
+		font-size: 0.85em;
+	}
+
+	.accordion summary::marker {
+		color: var(--accent-purple);
+		font-size: 0.85em;
+	}
+
+	.accordion-label {
+		color: inherit;
+		font-size: 1em;
+		font-weight: var(--font-weight-medium);
+		line-height: 1.45;
+	}
+
+	.accordion summary:hover {
+		color: var(--accent-purple);
+		transform: translateX(0.04em);
+	}
+
+	.accordion[open] summary {
+		color: var(--accent-purple);
+	}
+
+	.accordion-content {
+		margin: 0.85em 0 0 1em;
+		padding-left: 0.9em;
+		border-left: 1px solid rgba(var(--gray-light), 1);
+	}
+
+	.accordion-content :global(p:first-child) {
+		margin-top: 0;
+	}
+
+	@media (max-width: 480px) {
+		.accordion summary {
+			margin-left: 0.85em;
+		}
+
+		.accordion-content {
+			margin-left: 0.85em;
+			padding-left: 0.75em;
+		}
+	}
+</style>
