@@ -35,6 +35,7 @@ h3,
 h4,
 h5,
 h6 {
+	font-family: var(--font-family-heading);
 	margin: 0;
 	color: var(--text-color);
 	line-height: 1.3;
@@ -48,7 +49,7 @@ h6 {
 }
 
 .hero-title {
-	font-size: 2.6em;
+	font-size: 2.25em;
 	padding: 1.8em 0 0.5em 0;
 	margin: 0;
 	color: var(--text-color);
@@ -370,7 +371,7 @@ li {
 		padding: 2.5em 1em 2em;
 	}
 	.hero-title {
-		font-size: 2.2em;
+		font-size: 1.95em;
 		padding: 1.5em 0 0.5em 0;
 	}
 	h1,
@@ -471,7 +472,7 @@ li {
 		padding: 2em 0.75em 1.5em;
 	}
 	.hero-title {
-		font-size: 1.95em;
+		font-size: 1.72em;
 		padding: 1.3em 0 0.5em 0;
 	}
 	h1,
