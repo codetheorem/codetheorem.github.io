@@ -1,0 +1,831 @@
+---
+title: "Self-Hosting Git with Gitea + Tailscale + Cloudflare Tunnel"
+description: "documenting how I turned my mac mini into a self-hosted Git server with Gitea, GitHub pull mirrors, Tailscale, Cloudflare Tunnel, and daily backups"
+breadcrumbTitle: "Self-Hosting Git"
+pubDate: 2026-07-09
+image: ../../assets/blog/self-hosting-git/og.png
+dateLabels:
+  published: "Last updated: "
+---
+
+(wip)
+
+I've kinda always wanted to keep my own self-hosted backup of my GitHub, so I finally went ahead
+and tried it on my mac mini. I used Gitea for the Git server, GitHub pull mirrors for existing
+repos, Tailscale for private SSH access, Cloudflare Tunnel for the public web UI, and a few daily
+jobs for backup and cleanup.
+
+I am writing this as I try the setup myself. So this is not meant to be a perfectly detached
+checklist copied from docs. It is more like me writing down what I did, where I changed my mind, and
+what I would probably keep if I had to set it up again.
+
+At first, I thought this might be about replacing GitHub. It is not, at least not for me. GitHub is
+still good (or at least is still the industry standard) at public repo hosting, pull requests,
+comments, issues, stars, releases, and general discovery. What I wanted was another place where my
+repos live. A machine I control, reachable privately, visible publicly for read-only browsing,
+backed up daily, and restorable if something goes wrong.
+
+The version I ended up with looks roughly like this.
+
+```text
+GitHub
+  source of truth for GitHub-first repos
+  pull requests, issues, stars, comments
+
+Gitea on the always-on machine
+  local Git server
+  native GitHub pull mirrors
+  private repos
+  public web UI
+  daily backups
+
+Tailscale
+  private SSH Git access
+
+Cloudflare Tunnel
+  public HTTPS access to the Gitea web UI
+
+launchd
+  keeps Gitea, cloudflared, backups, metadata refresh, and cleanup running
+```
+
+I am using placeholders throughout the post.
+
+- `~/gitea-stack` for the local stack directory
+- `<github-user>` for the GitHub account
+- `<gitea-user>` for the Gitea account
+- `<tailscale-ip>` for the private Tailscale address
+- `git.example.com` for the public hostname
+
+I am intentionally not putting real local usernames, private IPs, tunnel IDs, email addresses, token
+paths, or secrets in a public post.
+
+---
+
+## 1. What I Ended Up Building
+
+I ended up thinking about the setup as two kinds of repos.
+
+The first kind is a GitHub-first repo.
+
+```text
+laptop -> push to GitHub -> Gitea pulls from GitHub
+```
+
+For repos like this, I let GitHub stay the source of truth. Gitea is a native pull mirror. It keeps
+a local copy of branches and tags, and it shows the mirror icon in the UI.
+
+The second kind is a Gitea-first repo.
+
+```text
+laptop -> push to Gitea
+optional later step -> publish to GitHub
+```
+
+For repos like this, I start on the local Git server. They stay local unless I explicitly decide to
+publish them to GitHub.
+
+This split mattered more than I expected.
+
+When a repo already lives on GitHub and people interact with it there, I prefer to let GitHub stay
+in charge. Pull requests, comments, issues, and stars are not Git objects. Mirroring commits alone
+does not move that whole social layer.
+
+When a repo starts locally, Gitea can be the source of truth. I can still publish it to GitHub later
+if that becomes useful.
+
+I kept this shape because it lets GitHub do what GitHub is good at, while still giving me a local
+Git home that I can control and back up.
+
+---
+
+## 2. Why Gitea
+
+I picked Gitea because it is small and boring in a good way.
+
+These were the pieces I needed.
+
+- Git over SSH
+- public and private repos
+- a web UI
+- native repository mirrors
+- SQLite support
+- a single binary install path
+- easy file-based backup
+
+This was the mental model I liked.
+
+```text
+launchd -> gitea binary -> SQLite + bare Git repos
+```
+
+There is no container layer in my version. There is nothing wrong with Docker, but I chose the
+direct binary install because it is easy to understand. If something fails, I only have a few places
+I usually check.
+
+- the Gitea process
+- `app.ini`
+- the SQLite database
+- the bare repositories
+- the launchd service
+- the logs
+
+That felt like a manageable list.
+
+---
+
+## 3. Directory Layout
+
+I kept the stack under one directory.
+
+```text
+~/gitea-stack/
+  bin/
+  custom/conf/
+  data/
+  repositories/
+  log/
+  run/
+  scripts/
+  secrets/
+  metadata/
+  lists/
+```
+
+Each directory had a clear job for me.
+
+- `bin/` for the Gitea binary
+- `custom/conf/` for Gitea config
+- `data/` for the SQLite database and Gitea state
+- `repositories/` for bare Git repos
+- `log/` for service and job logs
+- `run/` for lock files
+- `scripts/` for helper commands
+- `secrets/` for tokens and generated secrets
+- `metadata/` for GitHub metadata snapshots
+- `lists/` for generated repo lists
+
+This layout made backup simpler. Most state lives in one directory. Logs and temporary files can be
+excluded. I add anything outside the stack, such as SSH key material used by the service, to the
+backup explicitly.
+
+I created the base directories with this command.
+
+```zsh
+mkdir -p ~/gitea-stack/{bin,custom/conf,data,repositories,log,run,scripts,secrets,metadata,lists}
+chmod 700 ~/gitea-stack/secrets
+```
+
+---
+
+## 4. Installing Gitea
+
+I installed Gitea from the official binary.
+
+On Apple Silicon, I used the `darwin-arm64` build. On Intel Macs, the equivalent would be
+`darwin-amd64`.
+
+```zsh
+cd ~/gitea-stack/bin
+
+curl -L -o gitea "https://dl.gitea.com/gitea/<version>/gitea-<version>-darwin-arm64"
+curl -L -o gitea.asc "https://dl.gitea.com/gitea/<version>/gitea-<version>-darwin-arm64.asc"
+chmod +x gitea
+```
+
+I verified the signature.
+
+```zsh
+gpg --keyserver hkps://keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
+gpg --verify gitea.asc gitea
+```
+
+I also checked that Git existed.
+
+```zsh
+git --version
+```
+
+Gitea shells out to Git, so the machine needs Git installed too.
+
+---
+
+## 5. First Run And Web Install
+
+I ran Gitea manually first.
+
+```zsh
+GITEA_WORK_DIR=~/gitea-stack \
+  ~/gitea-stack/bin/gitea web \
+  --config ~/gitea-stack/custom/conf/app.ini \
+  --work-path ~/gitea-stack
+```
+
+At this point I opened the installer only on a private address. I did not want the first install
+screen exposed publicly.
+
+These were the basic settings I used.
+
+- database set to SQLite
+- repository root set to `~/gitea-stack/repositories`
+- app data path set to `~/gitea-stack/data`
+- web port set to `3000`
+- SSH port set to `2222` or another non-default port
+- registration disabled after the first admin user is created
+
+After the first install, I locked down the config.
+
+```zsh
+chmod 600 ~/gitea-stack/custom/conf/app.ini
+```
+
+Then I restarted Gitea and checked the health endpoint.
+
+```zsh
+curl http://<private-address>:3000/api/healthz
+```
+
+At this stage, I still kept the server private.
+
+---
+
+## 6. Moving Secrets Out Of app.ini
+
+Gitea creates several secret values during setup. I did not want those values pasted directly into
+`app.ini`, so I moved them into files under `secrets/` and pointed `app.ini` to those files.
+
+The config supports file URIs.
+
+```ini
+SECRET_KEY_URI = file:/path/to/secrets/secret-key
+INTERNAL_TOKEN_URI = file:/path/to/secrets/internal-token
+JWT_SECRET_URI = file:/path/to/secrets/oauth2-jwt-secret
+LFS_JWT_SECRET_URI = file:/path/to/secrets/lfs-jwt-secret
+```
+
+The real paths are absolute local paths on the machine. I am not putting those exact paths in a
+public post.
+
+I locked the files down.
+
+```zsh
+chmod 700 ~/gitea-stack/secrets
+chmod 600 ~/gitea-stack/secrets/*
+```
+
+I wanted `app.ini` to describe where secrets live, not become the place where every secret value is
+pasted forever.
+
+---
+
+## 7. Running Gitea With launchd
+
+On macOS, I used `launchd` to run Gitea after reboot.
+
+The service runs this command.
+
+```zsh
+~/gitea-stack/bin/gitea web \
+  --config ~/gitea-stack/custom/conf/app.ini \
+  --work-path ~/gitea-stack
+```
+
+The LaunchDaemon has these settings.
+
+- `RunAtLoad`
+- `KeepAlive`
+- working directory set to `~/gitea-stack`
+- stdout path set to `~/gitea-stack/log/launchd.out.log`
+- stderr path set to `~/gitea-stack/log/launchd.err.log`
+- user set to a normal local user, not root
+
+After installing the plist, I checked it.
+
+```zsh
+sudo launchctl print system/<service-name>
+```
+
+Then I checked Gitea.
+
+```zsh
+curl http://<private-address>:3000/api/healthz
+```
+
+I also rebooted the machine and checked again. A server that does not survive reboot does not feel
+finished to me.
+
+---
+
+## 8. Private SSH Access With Tailscale
+
+I used Tailscale before doing anything public.
+
+This was the first networking choice I made because it gave me a private path before anything was on
+the public internet.
+
+This was the private path.
+
+```text
+laptop -> Tailscale -> Mac mini -> Gitea
+```
+
+This let another laptop clone and push without SSH-ing into the Mac mini first.
+
+On the laptop, I created a dedicated SSH key.
+
+```zsh
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_gitea -C "gitea"
+```
+
+Then I added the public key to Gitea.
+
+```zsh
+cat ~/.ssh/id_ed25519_gitea.pub
+```
+
+My SSH config entry looks like this.
+
+```text
+Host gitea
+  HostName <tailscale-ip>
+  Port 2222
+  User git
+  IdentityFile ~/.ssh/id_ed25519_gitea
+  IdentitiesOnly yes
+```
+
+I tested it with this command.
+
+```zsh
+ssh -T gitea
+```
+
+Then I set a repo remote.
+
+```zsh
+git remote set-url origin gitea:<gitea-user>/<repo>.git
+```
+
+At this point, private Git over SSH worked through Tailscale.
+
+---
+
+## 9. Choosing The Mirror Direction
+
+There are two possible mirror directions.
+
+```text
+Gitea -> GitHub
+GitHub -> Gitea
+```
+
+For GitHub-first repos, I chose GitHub -> Gitea.
+
+GitHub is more than a Git remote. It also holds pull requests, comments, issues, stars, releases,
+and public repo pages. When the repo's public activity already happens on GitHub, I think GitHub is
+the better source of truth.
+
+So Gitea pulls from GitHub.
+
+```text
+push to GitHub -> Gitea pulls from GitHub
+```
+
+I liked this direction because it gave me the things I cared about.
+
+- native mirror icon in Gitea
+- GitHub PRs staying on GitHub
+- GitHub comments staying on GitHub
+- public repo discovery staying on GitHub
+- no custom push hooks for GitHub-source repos
+- no write deploy keys for every GitHub-source repo
+- a local mirror and backup on the Mac mini
+
+For Gitea-first repos, Gitea -> GitHub can still make sense. The important part for me is that
+publishing to GitHub stays explicit.
+
+I started with the idea of pushing from Gitea to GitHub for everything. I moved away from that
+because it made GitHub's pull request and issue layer feel secondary, even though most public repo
+activity already happens there.
+
+---
+
+## 10. Creating Native Pull Mirrors
+
+For an existing GitHub repo, I created a native Gitea pull mirror.
+
+```text
+GitHub repo -> Gitea migration -> native pull mirror
+```
+
+For public repos, the GitHub URL was enough.
+
+For private repos, Gitea needs credentials that can read the repo. I used a fine-grained GitHub
+token with read-only contents access. I did not give it write access.
+
+I stored the token in a protected file.
+
+```text
+~/gitea-stack/secrets/github-pull-mirror-token
+```
+
+Then I locked it down.
+
+```zsh
+chmod 600 ~/gitea-stack/secrets/github-pull-mirror-token
+```
+
+I did not put this token in `.zshrc`, dotfiles, shell exports, or public scripts.
+
+For automatic imports, I wanted this behavior.
+
+- list GitHub repos
+- skip forks
+- preserve public/private visibility
+- create native pull mirrors for missing repos
+- use the read-only token for private repos
+- avoid write deploy keys unless the repo is Gitea-first
+
+I set the mirror interval to something short.
+
+```text
+15 minutes
+```
+
+A webhook would make syncing more instant, but it also adds another public integration to secure. A
+short pull interval felt good enough.
+
+---
+
+## 11. Handling Gitea-First Repos
+
+For a new repo that starts on Gitea, this is my flow.
+
+```zsh
+git init repo-name
+cd repo-name
+git remote add origin gitea:<gitea-user>/repo-name.git
+git push -u origin main
+```
+
+I set push-created repos to default to private.
+
+When I want the repo to appear on GitHub later, I publish it deliberately.
+
+```zsh
+gitea-push-to-github --private repo-name
+```
+
+or
+
+```zsh
+gitea-push-to-github --public repo-name
+```
+
+A Gitea-to-GitHub push hook fits this case. The repo started on Gitea, so pushing it to GitHub is
+an intentional step instead of the default behavior for everything.
+
+---
+
+## 12. GitHub Metadata
+
+Git stores commits, branches, tags, and files.
+
+It does not store GitHub descriptions, topics, stars, homepage URLs, archived status, or visibility
+in a way Gitea automatically reuses.
+
+So I kept a metadata refresh step.
+
+```text
+GitHub API -> metadata JSON -> selected fields applied to Gitea
+```
+
+These are the fields I cared about.
+
+- description
+- homepage URL
+- topics
+- star count
+- archived state
+- visibility
+
+I did not fake GitHub stars as Gitea stars. I stored the GitHub star count as metadata instead.
+
+I run this daily, but only write to Gitea when something changed. Otherwise every repo starts
+looking recently updated even when no code changed.
+
+---
+
+## 13. Repository Updated Time
+
+Gitea's repository list has an `Updated ... ago` value.
+
+For a mirror-heavy setup, this can become noisy. Mirror syncs and metadata refreshes can bump the
+repository timestamp even if the latest commit did not change.
+
+I wanted the repo list to mean this.
+
+```text
+repo list updated time = newest branch commit time
+```
+
+So I added a small normalizer.
+
+```text
+every 60 seconds:
+  for each repo:
+    find newest branch commit time
+    set repository updated time to that
+```
+
+I left the native mirror sync timestamp alone. Gitea can still show when the mirror last synced on
+the repo page.
+
+So there are two separate signals.
+
+- repo list for last commit activity
+- mirror banner for last mirror sync
+
+---
+
+## 14. Daily Jobs
+
+The daily automation ended up as this schedule.
+
+```text
+every 60 seconds:
+  normalize repository updated times
+
+03:05:
+  discover new non-fork GitHub repos and import missing ones
+
+03:20:
+  refresh GitHub metadata
+
+03:45:
+  create backup and run maintenance
+```
+
+The discovery job does not sync existing repos. Native mirrors already do that on their own
+interval.
+
+The discovery job only answers one question.
+
+```text
+is there a new non-fork GitHub repo missing from Gitea?
+```
+
+When there is one, the job imports it as a native pull mirror.
+
+I care about this because backups only include what exists in Gitea. If a new GitHub repo never
+gets imported, the Gitea backup cannot include it.
+
+---
+
+## 15. Backups
+
+My backup includes these files.
+
+- Gitea config
+- SQLite database
+- repositories
+- metadata
+- secrets
+- required SSH key material
+
+It excludes these files.
+
+- logs
+- temp files
+- cache dirs
+
+The backup job does a few things.
+
+- stop Gitea briefly
+- create a `.tar.gz`
+- start Gitea again through launchd
+- run maintenance
+- keep the newest 30 backups
+
+I also run a restore check. Creating archives is not enough.
+
+The restore check does this.
+
+- extract the newest archive into a temp dir
+- check that config, database, repos, metadata, and secrets exist
+- run SQLite `quick_check`
+- sample bare repos with `git fsck`
+- delete the temp extraction
+
+That gave me more confidence than just seeing archive files pile up.
+
+---
+
+## 16. Maintenance
+
+The large files I found were not scripts.
+
+They were old temp clones, migration bundles, and logs.
+
+My maintenance job does this.
+
+- keep the newest 30 backups
+- remove stale metadata for deleted repos
+- remove old sync/import/migration temp dirs
+- remove old restore-check temp dirs
+- remove old import logs
+- trim large launchd stdout/stderr logs
+
+It keeps the small server small.
+
+---
+
+## 17. Public Access With Cloudflare Tunnel
+
+Tailscale handles private access. Cloudflare Tunnel handles public web access.
+
+I added Cloudflare only after the private Tailscale setup worked. That made the steps easier to
+debug. First I made Git work privately, then I made the web UI public.
+
+I was partly inspired by this [blog post](https://kennethnym.com/blog/a-gentle-introduction-to-cloudflare-tunnels/),
+which explains the model nicely.
+
+The high-level path became this.
+
+```text
+browser -> Cloudflare -> cloudflared on the Git server -> local Gitea
+```
+
+The Git server does not need an inbound router port. `cloudflared` opens an outbound connection to
+Cloudflare, and Cloudflare routes the public hostname through that connection.
+
+This was the basic flow I used.
+
+```zsh
+cloudflared tunnel login
+cloudflared tunnel create gitea
+cloudflared tunnel route dns gitea git.example.com
+cloudflared tunnel run gitea
+```
+
+My config looked like this.
+
+```yaml
+tunnel: <tunnel-uuid>
+credentials-file: ~/.cloudflared/<tunnel-uuid>.json
+
+ingress:
+  - hostname: git.example.com
+    service: http://127.0.0.1:3000
+  - service: http_status:404
+```
+
+For my actual setup, I stored the credentials file in a protected secrets directory and ran
+`cloudflared` with launchd.
+
+---
+
+## 18. Public Web, Private SSH
+
+I kept web and SSH separate.
+
+```text
+public web
+  https://git.example.com
+  Cloudflare Tunnel
+
+private Git SSH
+  gitea:<gitea-user>/<repo>.git
+  Tailscale
+```
+
+The public internet can view public repos.
+
+Git pushes still go through Tailscale.
+
+This leaves the Gitea SSH server private. I do not have a reason to expose it publicly right now.
+
+Gitea still enforces permissions.
+
+- registration disabled
+- private repos hidden from anonymous users
+- HTTP Git disabled
+- basic auth disabled
+- admin 2FA enabled
+- reverse-proxy auth disabled
+- webhooks disabled unless needed
+- config and secret files locked down
+
+Cloudflare gets traffic to the Git server. Gitea decides what each visitor can see.
+
+---
+
+## 19. Security Checklist
+
+Before I called the setup done, I checked these things.
+
+- production mode is on
+- registration is disabled
+- push-created repos default to private
+- public repos are visible to anonymous users
+- private repos are hidden from anonymous users
+- HTTP Git is disabled
+- SSH is not public
+- browser login works
+- admin 2FA is enabled
+- generated secrets live in files
+- secret files are mode `600`
+- secret directory is mode `700`
+- Gitea config is mode `600`
+- Cloudflare tunnel credentials are mode `600`
+- private GitHub mirror token is read-only
+- GitHub-source repos have no active push hooks
+- backups are mode `600`
+- restore check passes
+- audit passes
+
+Self-hosting does not help much if tokens leak into shell files, public notes, logs, or old backup
+archives.
+
+---
+
+## 20. Landing Page And Short Links
+
+Gitea repo paths look like this.
+
+```text
+https://git.example.com/<gitea-user>/<repo>
+```
+
+The default path is fine, but I wanted the public root page to feel more like a profile page. Gitea
+can show a profile README through a `.profile` repo.
+
+For short repo links, I added a small Cloudflare Worker.
+
+```text
+https://git.example.com/repo-name
+```
+
+It redirects to this.
+
+```text
+https://git.example.com/<gitea-user>/repo-name
+```
+
+I made sure the Worker does not redirect real Gitea paths.
+
+- `/user`
+- `/api`
+- `/assets`
+- `/explore`
+- `/<gitea-user>/...`
+
+---
+
+## 21. Normal Workflow
+
+For a GitHub-first repo, I push to GitHub.
+
+```zsh
+git push origin main
+```
+
+Gitea pulls the change on the mirror interval.
+
+For a new GitHub repo, I let the import job bring it into Gitea.
+
+```zsh
+gitea-import-new-github-repos --dry-run
+gitea-import-new-github-repos
+```
+
+For a Gitea-first repo, I push to Gitea.
+
+```zsh
+git remote add origin gitea:<gitea-user>/repo-name.git
+git push -u origin main
+```
+
+To publish a Gitea-first repo to GitHub, I run this command.
+
+```zsh
+gitea-push-to-github --private repo-name
+```
+
+For checks, I use these commands.
+
+```zsh
+gitea-audit
+gitea-security-check
+gitea-restore-check
+```
+
+For a manual backup, I use this command.
+
+```zsh
+gitea-backup
+```
+
+The setup has landed here for me. GitHub stays for now for public collaboration (@Cursor yall
+completing your GitHub killer anytime soon?), Gitea for a local mirror and Git home, Tailscale for
+private SSH, Cloudflare Tunnel for public web, and daily jobs for the boring parts.
