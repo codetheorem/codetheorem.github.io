@@ -1,7 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Recursive:MONO,wght@1,300;1,400;1,500;1,600;1,700&family=Space+Mono:wght@400;700&display=swap");
 
 :root {
-	--font-family-base: "IBM Plex Mono", "Monaco", "Menlo", "Consolas", monospace;
+	--font-family-base: "Recursive", "Monaco", "Menlo", "Consolas", monospace;
+	--font-family-heading:
+		"Space Mono", "Recursive", "Monaco", "Menlo", "Consolas", monospace;
 	--font-family-code:
 		"Fira Code", "IBM Plex Mono", "Monaco", "Menlo", "Consolas", monospace;
 
