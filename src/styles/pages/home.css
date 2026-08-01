@@ -1,78 +1,24 @@
-.home-page .github-activity {
+.home-page .hero-banner {
 	margin: 2em 0 0;
 }
 
-.home-page .github-graph-link {
-	display: block;
-	text-decoration: none;
-}
-
-.home-page .github-graph-frame {
-	overflow-x: auto;
-	padding: 0.55em;
+.home-page .hero-banner-frame {
+	overflow: hidden;
 	border: 1px solid rgba(128, 128, 128, 0.22);
 	border-radius: 8px;
-	background: rgba(var(--gray-light), 0.1);
 	transition: border-color 0.2s ease;
 }
 
-.home-page .github-graph-link:hover .github-graph-frame,
-.home-page .github-graph-link:focus-visible .github-graph-frame {
-	border-color: rgba(139, 92, 246, 0.42);
-}
-
-.home-page .github-graph-link:focus-visible {
-	outline: none;
-}
-
-.home-page .github-graph-crop {
-	height: 76px;
-	min-width: 568px;
-	overflow: hidden;
-}
-
-.home-page .github-graph {
+.home-page .hero-banner-image {
 	display: block;
-	width: calc(100% + 42px);
-	min-width: 610px;
-	max-width: none;
+	width: 100%;
 	height: auto;
-	margin: -18px 0 0 -42px;
 }
 
-[data-theme="dark"] .home-page .github-graph-frame {
+[data-theme="dark"] .home-page .hero-banner-frame {
 	border-color: rgba(var(--gray-light), 0.74);
-	background: rgba(var(--gray-light), 0.12);
-}
-
-[data-theme="dark"] .home-page .github-graph-link:hover .github-graph-frame,
-[data-theme="dark"]
-	.home-page
-	.github-graph-link:focus-visible
-	.github-graph-frame {
-	border-color: rgba(174, 139, 255, 0.46);
-}
-
-[data-theme="dark"] .home-page .github-graph {
-	filter: invert(1) hue-rotate(180deg) saturate(0.82) brightness(0.9);
-	opacity: 0.88;
 }
 
 .home-page .check-in {
 	margin-top: 1.35em;
-}
-
-@media (max-width: 480px) {
-	.home-page .github-graph-frame {
-		padding: 0.5em;
-	}
-
-	.home-page .github-graph-crop {
-		height: 70px;
-		min-width: 520px;
-	}
-
-	.home-page .github-graph {
-		min-width: 566px;
-	}
 }

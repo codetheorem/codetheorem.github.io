@@ -124,7 +124,7 @@ wrangler secret put VIEW_COUNTER_API_KEY
 Set the list of origins (comma-separated) that are allowed to call the worker. Example:
 
 ```
-ALLOWED_ORIGINS=https://sumit.ml,http://localhost:4321
+ALLOWED_ORIGINS=https://codetheorem.dev,http://localhost:4321
 ```
 
 Add this line to `worker/.dev.vars` for local development. For production/staging, set `ALLOWED_ORIGINS` via the Cloudflare Workers dashboard (Settings → Variables) or pass `--var ALLOWED_ORIGINS=...` when deploying with Wrangler. Include every production domain, preview URL, and dev host you rely on.
@@ -222,7 +222,7 @@ For production, you should restrict CORS to your actual domain. Edit `worker/vie
 
 ```javascript
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://sumit.ml', // Your domain
+  'Access-Control-Allow-Origin': 'https://codetheorem.dev', // Your domain
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
@@ -249,7 +249,7 @@ Cloudflare Pages will automatically deploy your changes.
 ## Testing in Production
 
 After deployment, visit one of your blog posts:
-- `https://sumit.ml/blog/inside-a-transformer/`
+- `https://codetheorem.dev/blog/inside-a-transformer/`
 
 You should see a view count appear near the publication date!
 
@@ -319,11 +319,11 @@ For a personal blog, this should be more than sufficient. View counts are:
 
 ## Optional: Custom Domain for Worker (I haven't done this yet, but in case you want to)
 
-If you want a cleaner URL like `https://api.sumit.ml/views/{slug}`:
+If you want a cleaner URL like `https://api.codetheorem.dev/views/{slug}`:
 
 1. Go to Cloudflare Dashboard → Workers & Pages → your worker
 2. Click "Triggers" → "Add Custom Domain"
-3. Configure your subdomain (e.g., `api.sumit.ml`)
+3. Configure your subdomain (e.g., `api.codetheorem.dev`)
 4. Update the `PUBLIC_WORKER_URL` in your environment variables
 
 ## Architecture Overview

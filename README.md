@@ -1,4 +1,4 @@
-# sumit.ml
+# codetheorem.dev
 
 1. <a href="#why-i-built-this">Why I Built This</a>
 2. <a href="#using-this-code">Using This Code</a>
@@ -16,7 +16,7 @@ There's some basic linting and prettier checks in place (commands <a href="#deve
 
 ## Why I Built This <a id="why-i-built-this"></a>
 
-I needed something dead simple for jotting down research notes, worklogs, and random thoughts without getting caught up in making the site itself look perfect. My previous site was built with Next.js and looked way too polished, which meant I spent more time tweaking animations and styling than actually writing anything useful. Archived that version now.
+I needed something dead simple for jotting down worklogs and random thoughts without getting caught up in making the site itself look perfect. Something minimal that stays out of the way and lets me focus on writing rather than tweaking animations and styling.
 
 ## Using This Code <a id="using-this-code"></a>
 
@@ -29,8 +29,8 @@ No need to ask permission or give credit, though I won't mind if you do and star
 1. Clone the repository
 
 ```bash
-git clone https://github.com/sumitdotml/sumit.ml.git
-cd sumit.ml
+git clone https://github.com/codetheorem/codetheorem.dev.git
+cd codetheorem.dev
 ```
 
 2. Install dependencies

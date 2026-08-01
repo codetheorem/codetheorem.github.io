@@ -1,0 +1,55 @@
+---
+import { getCollection } from "astro:content";
+import BaseHead from "../../components/BaseHead.astro";
+import DateMeta from "../../components/DateMeta.astro";
+import ViewCounter from "../../components/ViewCounter.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import { PHILOSOPHY_BASE_PAGE_DESCRIPTION, SITE_TITLE, WORKER_URL } from "../../consts";
+import "../../styles/pages/philosophy.css";
+
+const posts = (await getCollection("philosophy")).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`Philosophy | ${SITE_TITLE}`}
+			description={PHILOSOPHY_BASE_PAGE_DESCRIPTION}
+		/>
+	</head>
+	<body>
+		<Header />
+		<main class="philosophy-page">
+			<h1>Philosophy</h1>
+			<ul>
+				{
+					posts.map((post) => (
+						<li>
+							<a href={`/philosophy/${post.id}/`}>
+								<h2 class="post-title">{post.data.title}</h2>
+							</a>
+							<div class="post-meta">
+								<DateMeta date={post.data.pubDate} as="span" />
+								<ViewCounter
+									slug={post.id}
+									workerUrl={WORKER_URL}
+									readOnly={true}
+								/>
+							</div>
+						</li>
+					))
+				}
+			</ul>
+			{
+				posts.length === 0 && (
+					<p class="no-posts">No essays published yet.</p>
+				)
+			}
+		</main>
+		<Footer />
+	</body>
+</html>

@@ -37,14 +37,14 @@ const remarkPrettyArrows: Plugin<[], Root> = () => {
 
 // https://astro.build/config
 export default defineConfig({
-	site: "https://sumit.ml",
+	site: "https://codetheorem.dev",
 	integrations: [
 		mdx({
 			remarkPlugins: [remarkMath, remarkPrettyArrows],
 			rehypePlugins: [rehypeKatex],
 		}),
 		sitemap({
-			filter: (page) => !page.includes("/chiya") && !page.includes("/keybinds"),
+			filter: (page) => !page.includes("/keybinds"),
 		}),
 		react(),
 	],

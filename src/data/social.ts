@@ -1,27 +1,27 @@
 export type SocialLink = {
 	label: string;
 	href: string;
-	icon: "mail" | "github" | "twitter" | "rss";
+	icon: "mail" | "github" | "linkedin" | "rss";
 	external?: boolean;
 };
 
 export const SOCIAL_LINKS: SocialLink[] = [
 	{
 		label: "Email",
-		href: "mailto:sumit@sumit.ml",
+		href: "mailto:hrishikeshagarwalv@gmail.com",
 		icon: "mail",
 		external: false,
 	},
 	{
 		label: "GitHub",
-		href: "https://github.com/sumitdotml",
+		href: "https://github.com/codetheorem",
 		icon: "github",
 		external: true,
 	},
 	{
-		label: "Twitter",
-		href: "https://x.com/sumitdotml",
-		icon: "twitter",
+		label: "LinkedIn",
+		href: "https://linkedin.com/in/hrishikesh-agarwal",
+		icon: "linkedin",
 		external: true,
 	},
 	{

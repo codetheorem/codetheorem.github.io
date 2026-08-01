@@ -1,15 +1,13 @@
 ---
+import { Image } from "astro:assets";
 import BaseHead from "../components/BaseHead.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import Link from "../components/Link.astro";
 import Accordion from "../components/Accordion.astro";
+import HeroImage from "../assets/home/hero.jpg";
 import "../styles/pages/home.css";
-
-const githubUsername = "sumitdotml";
-const githubProfileUrl = `https://github.com/${githubUsername}`;
-const githubGraphUrl = `https://ghchart.rshah.org/8b5cf6/${githubUsername}`;
 ---
 
 <!doctype html>
@@ -20,29 +18,20 @@ const githubGraphUrl = `https://ghchart.rshah.org/8b5cf6/${githubUsername}`;
 	<body>
 		<Header />
 		<main class="home-page">
-			<h1 class="hero-title">Hi, I'm Sumit</h1>
-			<p>Tokyo-based MLE, aspiring ML Researcher</p>
+			<h1 class="hero-title">Hi, I'm Hrishikesh</h1>
+			<p>Software Engineer building agentic AI systems in Bengaluru, India</p>
 
-			<section class="github-activity" aria-label="GitHub activity">
-				<a
-					class="github-graph-link"
-					href={githubProfileUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					aria-label={`GitHub profile for ${githubUsername}`}
-				>
-					<div class="github-graph-frame">
-						<div class="github-graph-crop">
-							<img
-								class="github-graph"
-								src={githubGraphUrl}
-								alt={`GitHub contribution graph for ${githubUsername}`}
-								loading="lazy"
-								decoding="async"
-							/>
-						</div>
-					</div>
-				</a>
+			<section class="hero-banner" aria-label="Hero banner">
+				<div class="hero-banner-frame">
+					<Image
+						class="hero-banner-image"
+						src={HeroImage}
+						alt=""
+						widths={[400, 750, 1100]}
+						sizes="(max-width: 800px) 100vw, 800px"
+						loading="eager"
+					/>
+				</div>
 			</section>
 
 			<p class="check-in">
@@ -53,54 +42,43 @@ const githubGraphUrl = `https://ghchart.rshah.org/8b5cf6/${githubUsername}`;
 
 			<p>Right now, I'm mostly focused on:</p>
 			<ul>
-				<li>MLSys: learning CUDA + writing kernels, reading GPU blogs, etc.</li>
 				<li>
-					Reading technical reports from recent open-source model releases
+					Building multi-agent systems with LangGraph — predictive
+					maintenance, conversational commerce, and cloud cost governance
 				</li>
-				<li>Lots of weekly hackathons and ML events in Tokyo</li>
+				<li>RAG pipelines, retrieval tooling, and prompt engineering</li>
 				<li>
-					and doing multiple projects with relevance to the above, publishing
-					blog posts as well as worklogs :)
+					Backend engineering with FastAPI, and cloud work across AWS and Azure
+				</li>
+				<li>
+					and writing up worklogs and technical notes on what I build along the
+					way :)
 				</li>
 			</ul>
 
-			<Accordion label="Looking for mentorship">
+			<Accordion label="Open to interesting conversations">
 				<p>
-					I'm currently a solo researcher + engineer, and I believe that
-					mentorship in ML research & development could be mutually valuable!
-					I'm particularly interested in LLM training, inference optimization,
-					fine-tuning, and low-resource language research, including but not
-					limited to dataset curation, tokenization strategies, cross-lingual
-					transfer, and model adaptation for underrepresented languages. If you
-					think some of my research interests or efforts are worthwhile for
-					mentorship or collaboration, please reach out!
+					I've spent the last few years moving from general software
+					engineering into GenAI and agentic systems — building multi-agent
+					pipelines with LangGraph, RAG systems, and LLM-driven automation in
+					production. I'm always up for talking shop on agentic architectures,
+					retrieval systems, or backend engineering more broadly.
 				</p>
 				<p>
-					Now with that being said, I'm genuinely open to exploring other areas
-					of deep learning if the problems are compelling and the learning
-					opportunity is strong (which might be pretty much every time if you're
-					doing something interesting). I'm still figuring out what I don't know
-					right now, which is exactly why I want to work alongside someone doing
-					real research.
+					If you're working on something interesting in this space, or just
+					want to compare notes on what's actually working in production
+					agentic systems versus what looks good in a demo, I'd love to chat.
 				</p>
 				<p>
-					My battle-tested method to learn has always been to put myself under
-					immense pressure from where the only option to survive is via quick
-					learning and adaptation. I love learning by doing; I love working on
-					real problems, asking questions, being wrong, and building up
-					intuition alongside someone who knows what they're doing. Therefore,
-					if you're working on interesting problems and think having someone
-					with relentless curiosity and motivation alongside you could be
-					mutually valuable, I'd love to chat. All I ask for is an environment
-					where I can garner knowledge, skills, and display my grit & toil. As
-					long as I can go all-out in my pursuit of uncompromising learning
-					sense, I don't care about any other gains or rewards.
-				</p>
-				<p>
-					<Link href="mailto:sumit@sumit.ml" fontWeight="medium"> Email </Link>
+					<Link href="mailto:hrishikeshagarwalv@gmail.com" fontWeight="medium">
+						Email
+					</Link>
 					or
-					<Link fontWeight="medium" href="https://twitter.com/sumitdotml">
-						Twitter
+					<Link
+						fontWeight="medium"
+						href="https://linkedin.com/in/hrishikesh-agarwal"
+					>
+						LinkedIn
 					</Link>
 					work best for me; I'll get back to you as soon as I can.
 				</p>
@@ -108,7 +86,7 @@ const githubGraphUrl = `https://ghchart.rshah.org/8b5cf6/${githubUsername}`;
 			<p>
 				You can also check out my <Link href="/blog" fontWeight="medium"
 					>blog</Link
-				> or <Link href="/research" fontWeight="medium">research</Link>
+				> or <Link href="/philosophy" fontWeight="medium">philosophy</Link>
 				pages for project updates and worklogs, or just throw me a message on the
 				aforementioned links if you wanna chat about stuff :)
 			</p>

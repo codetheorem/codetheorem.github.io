@@ -1,0 +1,107 @@
+---
+title: "Why We Need Distributed Systems"
+description: "why single-server architectures hit a hard ceiling, what you gain and lose by going distributed, and the three pillars (scalability, resiliency, maintainability) every design decision comes back to"
+breadcrumbTitle: "Distributed Systems"
+pubDate: 2026-08-01
+---
+
+## Why Distributed? The Single Machine Ceiling
+
+Picture this: you've got a web app running on a single server. It's a straightforward setup. Your web server, your application code, and your database, all sitting on one machine. Ten users are hitting it throughout the day. Response times are fast, the server is barely breaking a sweat, and you can debug any issue by SSH-ing into that one box and tailing the logs.
+
+Life is good. So why would you ever complicate it?
+
+## The Single Machine
+
+A single server architecture is the simplest thing that works. One process handles requests, reads and writes go to one database on the same machine (or at least on the same local network), and there are zero coordination problems because there's nothing to coordinate.
+
+This setup has real advantages:
+
+- **Latency is minimal.** A function call between your app and your database takes microseconds, not the milliseconds you'd spend on a network round-trip.
+- **Consistency is trivial.** There's one copy of the data. No question about which version is "correct."
+- **Debugging is straightforward.** Something broke? There's one machine. One set of logs. One place to look.
+- **Deployment is simple.** Push new code to one server, restart, done.
+
+If your workload fits on a single machine, you should seriously consider keeping it on a single machine. Distributed systems aren't a badge of honor. They're a tradeoff you accept when the alternative is worse.
+
+## The Ceiling
+
+But single machines have hard limits.
+
+**CPU.** Every server has a finite number of cores. When your application is CPU-bound (doing computation, serializing JSON, running business logic), you'll eventually saturate all available cores. At that point, requests start queuing. Response times climb. Users notice.
+
+**Memory.** Your application and database share a finite pool of RAM. As your dataset grows and more concurrent requests hold state in memory, you'll run out. The operating system starts swapping to disk, and performance craters. Suddenly everything is 100x slower because memory accesses that took nanoseconds now take milliseconds.
+
+**Disk I/O.** Databases are ultimately limited by how fast they can read from and write to storage. SSDs helped enormously, but a single disk still has a throughput ceiling. A busy Postgres instance doing thousands of transactions per second on one drive will eventually hit that wall.
+
+**Network bandwidth.** One server has one network interface. If you're serving large responses, streaming video, or handling thousands of WebSocket connections, you'll saturate that link.
+
+And then there's the problem that no amount of hardware can solve: a single server is a single point of failure. If that machine goes down (hardware fault, kernel panic, a bad deploy, someone accidentally fills up the disk) your entire application is offline. Every user. Every request. Gone.
+
+## Scaling Up Has Limits
+
+The first instinct is usually to buy a bigger machine. More CPU cores, more RAM, faster SSDs. This is called vertical scaling (or "scaling up"), and it works... to a point.
+
+The problem is that the cost curve is exponential, not linear. Going from 8 cores to 16 cores might cost 2x more. Going from 16 to 32 might cost 4x more. Going from 32 to 64? You're looking at specialized hardware that costs 10-20x what a commodity server costs. And the biggest machine money can buy still has a finite number of cores, a finite amount of RAM, and it's still a single point of failure.
+
+At some point, you hit the ceiling of what one machine can do. And when you're there, there's only one direction left: out.
+
+## Going Distributed
+
+Instead of one giant machine, you split the work across multiple smaller machines. This is horizontal scaling (or "scaling out").
+
+A typical first step: put a load balancer in front of two or three application servers. Requests come in, the load balancer distributes them across the servers. Behind those servers, the database runs on its own dedicated machine, maybe with a read replica for redundancy.
+
+Same ten thousand users, but now each server is sitting at 35-40% CPU instead of 95%. There's headroom. And if you need to handle twenty thousand users next month? You add another server. The load balancer picks it up automatically. No need to buy a machine that's twice as powerful. Just add another commodity server.
+
+## What You Gain
+
+**Capacity.** Need to handle more load? Add more machines. The upper bound becomes the number of machines you can deploy, not the specs of the biggest one.
+
+**Fault tolerance.** If one server goes down, the others keep serving traffic. Users might experience a brief hiccup during failover, but the application stays online. Compare that to a single-server setup where one crash means total downtime.
+
+**Independent scaling.** Not every part of your system hits its limit at the same time. Maybe your database is the bottleneck but your app servers have plenty of headroom. In a distributed system, you can scale the database independently (add read replicas, shard the data) without touching the app servers.
+
+**Geographic distribution.** You can place servers in different regions, closer to your users. A user in Tokyo gets a response from a server in Tokyo, not from one in Virginia. That's the difference between 20ms and 200ms latency.
+
+## What You Lose
+
+Here's the part most people underestimate.
+
+**Simplicity.** When your web server and database were on the same machine, talking between them was a function call. Now it's a network request. That network request can fail, time out, arrive out of order, or succeed on the server side while the response gets lost, so your client thinks it failed even though the operation actually happened. Every single interaction between machines now has failure modes that simply didn't exist before.
+
+**Partial failures.** In a single-server world, your system is either up or down. In a distributed system, Server A might be fine, Server B might be overloaded, and the database might be doing a backup that's slowing everything down. Some requests work perfectly. Others fail. Others are just slow. This is much harder to reason about and much harder to debug.
+
+**Network unreliability.** The network between machines can drop packets, introduce latency, or go down entirely (a network partition). Your system needs to handle all of these cases. What happens if your app server can talk to the database but not to the cache? What if two app servers can't talk to each other but can both talk to the database?
+
+**Distributed state.** If you have two copies of your data on two servers and a user updates their profile on Server A, what does a subsequent request see if it hits Server B? The old version? The new version? This question, which sounds simple, is one of the hardest problems in computer science. It has formal names like "consistency models," and it deserves a dedicated deep dive on its own.
+
+## The Three Pillars
+
+Every design decision in a distributed system comes back to three properties:
+
+**Scalability.** Can the system handle increasing load by adding resources? This isn't just about raw throughput. It's about being able to grow capacity without redesigning the system. A well-designed distributed system can go from handling a thousand requests per second to a million by adding machines, not by rewriting code.
+
+**Resiliency.** Can the system keep working when things go wrong? And things WILL go wrong. Servers crash, networks partition, disks fill up, deploys have bugs. Resiliency is about containing the blast radius of failures and recovering automatically. When one component fails, the rest of the system should keep functioning, maybe in a degraded mode, but functioning.
+
+**Maintainability.** Can people understand, operate, and evolve the system over time? This gets overlooked, but it matters enormously. A distributed system that nobody can debug in production, nobody can deploy without fear, or nobody can modify without breaking something else... that system is a liability, no matter how scalable or resilient it is.
+
+These three pillars are in constant tension. Making a system more resilient (adding redundancy, replication, failover mechanisms) often makes it less maintainable (more moving parts, more complex interactions). Making it more scalable (adding caching layers, partitioning data) can create new failure modes. Good distributed systems design is about finding the right balance for your specific requirements.
+
+## Anatomy Of A Distributed System
+
+Let's look at the pieces that make up a typical modern distributed system.
+
+**Clients.** Browsers, mobile apps, other services. They send requests and expect responses. They're outside your control and they might be on slow, unreliable networks.
+
+**CDN (Content Delivery Network).** A globally distributed cache for static content. When a user in Mumbai loads your website, the JavaScript, CSS, and images come from a CDN server in Mumbai, not from your data center in Virginia. This handles the easy stuff so your servers can focus on dynamic requests.
+
+**Load balancer.** Sits in front of your application servers and distributes incoming traffic. Can work at different levels: DNS-based (returning different IP addresses), Layer 4 (routing by IP/port without inspecting HTTP), or Layer 7 (reading HTTP headers and making smart routing decisions).
+
+**Application services.** Your actual business logic. In a distributed system, this often means multiple services: an auth service, an orders service, a payments service. Each one is independently deployable and scalable. They communicate with each other over the network, either synchronously (HTTP, gRPC) or asynchronously (through a message queue).
+
+**Database.** Your primary data store. Usually a relational database like Postgres or MySQL for transactional data. In a distributed setup, you'll typically have a primary instance that handles writes and one or more replicas that handle reads. This gives you both fault tolerance (if the primary goes down, promote a replica) and read scaling (spread read queries across multiple replicas).
+
+**Cache.** An in-memory data store (Redis, Memcached) that sits between your application and the database. Frequently accessed data gets served from cache (microsecond responses) instead of hitting the database (millisecond responses). The tradeoff: you now have two copies of the data, and keeping them in sync is your problem.
+
+**Message queue.** A system (Kafka, SQS, RabbitMQ) that enables asynchronous communication between services. Instead of Service A calling Service B directly and waiting for a response, Service A puts a message on a queue and moves on. Service B processes it whenever it's ready. This decouples the services in time so they don't need to be available at the same moment.

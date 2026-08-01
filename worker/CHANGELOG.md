@@ -72,7 +72,7 @@ All notable changes to the blog view counter implementation are documented in th
 - Blocks requests with 403 Forbidden if origin not in allowed list
 - CORS headers now include X-Worker-Api-Key for preflight requests
 - Operational note: Environment variable must be named exactly "ALLOWED_ORIGINS" in Cloudflare dashboard
-- Values must include full origin (scheme + domain), e.g., https://sumit.ml,http://localhost:4321
+- Values must include full origin (scheme + domain), e.g., https://codetheorem.dev,http://localhost:4321
 
 **Input Validation**
 - Slug length validation (maximum 256 characters)
@@ -219,7 +219,7 @@ All notable changes to the blog view counter implementation are documented in th
 ### Environment Variables
 
 **Required:**
-- `ALLOWED_ORIGINS`: Comma-separated list of allowed origins (e.g., "https://sumit.ml,http://localhost:4321")
+- `ALLOWED_ORIGINS`: Comma-separated list of allowed origins (e.g., "https://codetheorem.dev,http://localhost:4321")
 - `DEDUP_SALT`: Secret salt for IP hashing (never commit to git)
 
 **Optional:**

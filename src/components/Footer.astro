@@ -1,17 +1,18 @@
 ---
-import { Mail, Github, Twitter, Rss } from "lucide-astro";
+import { Mail, Github, Linkedin, Rss } from "lucide-astro";
 import BrandIcon from "./BrandIcon.astro";
 import { SOCIAL_LINKS } from "../data/social";
 import { formatVersionDate } from "../utils/dates";
+import { SITE_TITLE } from "../consts";
 
 const ICONS = {
 	mail: Mail,
 	github: Github,
-	twitter: Twitter,
+	linkedin: Linkedin,
 	rss: Rss,
 } as const;
 
-const versionStamp = `sumit.ml v${formatVersionDate(new Date())}`;
+const versionStamp = `${SITE_TITLE} v${formatVersionDate(new Date())}`;
 ---
 
 <footer>
