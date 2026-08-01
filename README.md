@@ -29,8 +29,8 @@ No need to ask permission or give credit, though I won't mind if you do and star
 1. Clone the repository
 
 ```bash
-git clone https://github.com/codetheorem/codetheorem.dev.git
-cd codetheorem.dev
+git clone https://github.com/codetheorem/codetheorem.github.io.git
+cd codetheorem.github.io
 ```
 
 2. Install dependencies
@@ -91,6 +91,4 @@ The view counter includes rate limiting, IP-based deduplication, optional API au
 
 It's a fully static site, so deploying is a breeze.
 
-I am currently using Cloudflare Pages to deploy this site. Whenever I push my code to GitHub, Cloudflare Pages automatically builds and deploys the site. Pretty handy.
-
-I don't recommend using Vercel, however, since one of the main reasons I built this site was to avoid using Vercel's services. So if you're looking to use this repo as a starting point for your own site, I'd sleep a bit better knowing you're not using it. Can't stop you, but just letting you know.
+I am currently using GitHub Pages to deploy this site. A GitHub Actions workflow builds and deploys the site to Pages whenever I push to `main`.

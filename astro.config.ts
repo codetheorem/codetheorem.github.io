@@ -37,7 +37,7 @@ const remarkPrettyArrows: Plugin<[], Root> = () => {
 
 // https://astro.build/config
 export default defineConfig({
-	site: "https://codetheorem.dev",
+	site: "https://codetheorem.github.io",
 	integrations: [
 		mdx({
 			remarkPlugins: [remarkMath, remarkPrettyArrows],
