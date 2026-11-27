@@ -5,7 +5,11 @@ import DateMeta from "../../components/DateMeta.astro";
 import ViewCounter from "../../components/ViewCounter.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
-import { BLOG_BASE_PAGE_DESCRIPTION, SITE_TITLE, WORKER_URL } from "../../consts";
+import {
+	BLOG_BASE_PAGE_DESCRIPTION,
+	SITE_TITLE,
+	WORKER_URL,
+} from "../../consts";
 import "../../styles/pages/blog.css";
 
 const posts = (await getCollection("blog")).sort(
@@ -32,6 +36,7 @@ const posts = (await getCollection("blog")).sort(
 							<a href={`/blog/${post.id}/`}>
 								<h2 class="post-title">{post.data.title}</h2>
 							</a>
+							<p class="post-description">{post.data.description}</p>
 							<div class="post-meta">
 								<DateMeta date={post.data.pubDate} as="span" />
 								<ViewCounter

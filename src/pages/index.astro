@@ -1,13 +1,15 @@
 ---
-import { Image } from "astro:assets";
+import { getCollection } from "astro:content";
 import BaseHead from "../components/BaseHead.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import DateMeta from "../components/DateMeta.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
-import Link from "../components/Link.astro";
-import Accordion from "../components/Accordion.astro";
-import HeroImage from "../assets/home/hero.jpg";
 import "../styles/pages/home.css";
+
+const posts = (await getCollection("blog"))
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, 3);
 ---
 
 <!doctype html>
@@ -18,78 +20,138 @@ import "../styles/pages/home.css";
 	<body>
 		<Header />
 		<main class="home-page">
-			<h1 class="hero-title">Hi, I'm Hrishikesh</h1>
-			<p>Software Engineer building agentic AI systems in Bengaluru, India</p>
-
-			<section class="hero-banner" aria-label="Hero banner">
-				<div class="hero-banner-frame">
-					<Image
-						class="hero-banner-image"
-						src={HeroImage}
-						alt=""
-						widths={[400, 750, 1100]}
-						sizes="(max-width: 800px) 100vw, 800px"
-						loading="eager"
-					/>
+			<section class="home-hero" aria-labelledby="intro-title">
+				<p class="paper-label">Software engineer · Bengaluru, India</p>
+				<h1 id="intro-title">
+					Hi, I'm Hrishikesh.<br />I build <span class="print-blue"
+						>AI systems</span
+					><br />that <em>do the work.</em>
+				</h1>
+				<p class="hero-intro">
+					I build agents that diagnose faults, find the right information, and
+					carry out tasks. Most of my work sits between <strong
+						>language models and the software they need to use.</strong>
+				</p>
+				<div class="hero-links">
+					<a class="paper-button primary" href="/blog">Read my writing</a>
+					<a class="paper-button" href="/about">A bit about me</a>
 				</div>
 			</section>
 
-			<p class="check-in">
-				Thanks for checking in! I go into some ramblings and random tangents
-				about myself <Link href="/about" fontWeight="semibold">here</Link>, so
-				if you want to read a little bit about me, that's a good place.
-			</p>
+			<div class="tools-strip" aria-label="Tools I work with">
+				<span>LangGraph</span><span>FastAPI</span><span>RAG</span><span
+					>AWS + Azure</span
+				>
+			</div>
 
-			<p>Right now, I'm mostly focused on:</p>
-			<ul>
-				<li>
-					Building multi-agent systems with LangGraph — predictive
-					maintenance, conversational commerce, and cloud cost governance
-				</li>
-				<li>RAG pipelines, retrieval tooling, and prompt engineering</li>
-				<li>
-					Backend engineering with FastAPI, and cloud work across AWS and Azure
-				</li>
-				<li>
-					and writing up worklogs and technical notes on what I build along the
-					way :)
-				</li>
-			</ul>
+			<section class="home-section" aria-labelledby="work-title">
+				<p class="section-kicker">What I work on</p>
+				<h2 id="work-title">From a prompt<br />to a working system.</h2>
+				<div class="work-grid">
+					<article class="work-card">
+						<p class="card-label">Agents + orchestration</p>
+						<h3>Giving agents<br />a job to finish.</h3>
+						<p>
+							Multi-agent workflows for predictive maintenance, conversational
+							commerce, and cloud cost governance. Deciding which agent does
+							what, how they share context, and when a person needs to step in.
+						</p>
+						<p class="card-note">LangGraph · Tool use · Human review</p>
+					</article>
+					<article class="work-card">
+						<p class="card-label">Retrieval + backend</p>
+						<h3>Getting the right<br />context into place.</h3>
+						<p>
+							RAG pipelines, retrieval tools, and the APIs behind them.
+							Connecting models to documents and services, then making those
+							connections work under production constraints.
+						</p>
+						<p class="card-note">RAG · FastAPI · AWS + Azure</p>
+					</article>
+				</div>
+			</section>
 
-			<Accordion label="Open to interesting conversations">
+			<section
+				class="home-section writing-section"
+				aria-labelledby="writing-title"
+			>
+				<div class="section-heading">
+					<div>
+						<p class="section-kicker">Notes from the work</p><h2
+							id="writing-title"
+						>
+							Thinking in public.
+						</h2>
+					</div>
+					<a class="section-link" href="/blog">All writing</a>
+				</div>
+				<ul class="writing-list">
+					{
+						posts.map((post) => (
+							<li>
+								<div>
+									<>
+										<a href={`/blog/${post.id}/`}>{post.data.title}</a>
+										<p>{post.data.description}</p>
+									</>
+								</div>
+								<DateMeta date={post.data.pubDate} as="span" />
+							</li>
+						))
+					}
+				</ul>
+			</section>
+
+			<section class="home-section about-note" aria-labelledby="about-title">
+				<div>
+					<p class="section-kicker">A little context</p><h2 id="about-title">
+						The path here.
+					</h2>
+				</div>
+				<div>
+					<p>
+						I studied computer science at SMVDU, contributed through Google
+						Summer of Code, and moved from general software engineering into
+						GenAI. At Tata Elxsi, I built tools for test generation, document
+						retrieval, and cloud governance. At Sasken, I build agentic systems.
+					</p>
+					<p>
+						I write to work through the details: what a system does, where it
+						breaks, and why one approach holds up better than another. <a
+							href="/about">More about me</a
+						>.
+					</p>
+				</div>
+			</section>
+
+			<section class="contact-section" aria-labelledby="contact-title">
+				<p class="section-kicker">Compare notes</p>
+				<h2 id="contact-title">
+					Let's talk<br /><span class="print-blue">shop.</span>
+				</h2>
 				<p>
-					I've spent the last few years moving from general software
-					engineering into GenAI and agentic systems — building multi-agent
-					pipelines with LangGraph, RAG systems, and LLM-driven automation in
-					production. I'm always up for talking shop on agentic architectures,
-					retrieval systems, or backend engineering more broadly.
+					Working on agents, retrieval, or backend systems? I'd like to hear
+					what you're building and what's proving difficult.
 				</p>
-				<p>
-					If you're working on something interesting in this space, or just
-					want to compare notes on what's actually working in production
-					agentic systems versus what looks good in a demo, I'd love to chat.
-				</p>
-				<p>
-					<Link href="mailto:hrishikeshagarwalv@gmail.com" fontWeight="medium">
-						Email
-					</Link>
-					or
-					<Link
-						fontWeight="medium"
-						href="https://linkedin.com/in/hrishikesh-agarwal"
+				<div class="hero-links">
+					<a
+						class="paper-button primary"
+						href="mailto:hrishikeshagarwalv@gmail.com">Email me</a
 					>
-						LinkedIn
-					</Link>
-					work best for me; I'll get back to you as soon as I can.
-				</p>
-			</Accordion>
-			<p>
-				You can also check out my <Link href="/blog" fontWeight="medium"
-					>blog</Link
-				> or <Link href="/philosophy" fontWeight="medium">philosophy</Link>
-				pages for project updates and worklogs, or just throw me a message on the
-				aforementioned links if you wanna chat about stuff :)
-			</p>
+					<a
+						class="paper-button"
+						href="https://linkedin.com/in/hrishikesh-agarwal"
+						target="_blank"
+						rel="noopener noreferrer">LinkedIn</a
+					>
+					<a
+						class="paper-button"
+						href="https://github.com/codetheorem"
+						target="_blank"
+						rel="noopener noreferrer">GitHub</a
+					>
+				</div>
+			</section>
 		</main>
 		<Footer />
 	</body>
