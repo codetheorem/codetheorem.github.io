@@ -1,0 +1,7 @@
+%% Conceptual public illustration; not implementation-derived.
+flowchart LR
+ A[Record baseline] --> B[Construct candidate]
+ B --> C[Evaluate matched cases]
+ C --> D[Compare outcomes and total cost]
+ D --> E[Retain, revise, or reject]
+ D -.-> B

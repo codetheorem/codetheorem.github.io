@@ -1,0 +1,8 @@
+%% Conceptual public illustration; not implementation-derived.
+flowchart LR
+ subgraph Direct
+ A[Application] --> P[Provider]
+ end
+ subgraph Gateway_boundary
+ B[Application] --> G[Tokenomics policies and measurement] --> M[Model tier]
+ end

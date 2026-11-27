@@ -1,0 +1,39 @@
+---
+interface Props {
+	src: string;
+	alt: string;
+	caption: string;
+}
+const { src, alt, caption } = Astro.props;
+---
+
+<figure class="engineering-diagram">
+	<div class="diagram-scroll" tabindex="0" role="region" aria-label={alt}>
+		<img src={src} alt={alt} width="800" height="500" loading="lazy" />
+	</div>
+	<figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+	.engineering-diagram {
+		margin: 2rem 0;
+	}
+	.diagram-scroll {
+		overflow-x: auto;
+		border: 1px solid var(--text-color);
+		background: #f2eadb;
+	}
+	img {
+		display: block;
+		width: 100%;
+		min-width: 640px;
+		max-width: none;
+		height: auto;
+	}
+	figcaption {
+		margin-top: 0.75rem;
+		font-size: 0.875rem;
+		line-height: 1.6;
+		color: var(--text-color-muted);
+	}
+</style>

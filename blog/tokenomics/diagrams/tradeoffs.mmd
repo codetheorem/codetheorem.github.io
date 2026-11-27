@@ -1,0 +1,6 @@
+%% Conceptual public illustration; not implementation-derived.
+flowchart TD
+ A[Candidate policies] --> B{Meet task success, latency, and reliability constraints?}
+ B -->|Yes| C[Compare expected workflow costs]
+ B -->|No| D[Reject or revise policy]
+ C --> E[Choose and evaluate]

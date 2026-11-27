@@ -1,0 +1,8 @@
+%% Conceptual public illustration; not implementation-derived.
+flowchart TD
+ A[Task and policy constraints] --> B[Eligible model tier]
+ B --> C[Execute]
+ C --> D[Policy outcome]
+ D --> E[Accept or return failure]
+ D --> F[Escalate only within budget]
+ F --> B

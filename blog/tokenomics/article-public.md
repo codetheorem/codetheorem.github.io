@@ -1,0 +1,320 @@
+# The Economics of Intelligence: How I Built Tokenomics
+
+A user asks an agent a short question. The agent sends a long request to a model: instructions, conversation history, retrieved documents, tool definitions, and the question itself. It gets a response, calls a tool, and sends much of the same material again.
+
+The question was short. The work wasn't.
+
+While building generative AI and multi-agent systems, I kept encountering this mismatch. Applications could invoke a model easily, but they had less machinery for deciding whether the model, context, and repeated computation were appropriate for the task. Each application handled those decisions differently, if it handled them at all.
+
+I built Tokenomics to put those decisions in an infrastructure layer. My work covered the gateway, model routing, context optimization, caching strategies, skills-aware prompt processing, escalation, and the instrumentation needed to evaluate them.
+
+The hardest question was how to reduce work without removing something the application needed. That question shaped the architecture more than any particular compression technique.
+
+*Tokenomics is an internal product. This account uses my engineering background at a conceptual level. The diagrams, request examples, and pseudocode were written for this article; they do not reproduce the implementation. All numerical examples are synthetic, with invented prices and workloads. Internal benchmarks and proprietary details are omitted.*
+
+## An API call with a variable amount of work
+
+A conventional endpoint can also have variable costs. A database query scanning a table is different from a key lookup. LLM APIs make that variation especially visible because the amount of text processed and generated is often part of the bill.
+
+Text first becomes tokens: units determined by a model's tokenizer. Token counts depend on the tokenizer and serialized request, not just the number of words. A field name, a long identifier, or a tool schema can contribute more than someone reading the user message would expect.
+
+For a typical autoregressive transformer, there are two useful phases to distinguish. During **prefill**, the model processes the supplied context. During **decoding**, it generates subsequent tokens, using the context and preceding output. Longer input increases the context to process; longer output requires more generation steps. Neither effect gives a universal formula for elapsed time, because architecture, hardware, batching, and serving behavior matter too.
+
+Attention implementations commonly retain keys and values for preceding tokens so generation doesn't recompute them at every step. That is the KV cache. It is working state inside inference, rather than a database of finished answers. [Hugging Face's cache explanation](https://huggingface.co/docs/transformers/main/en/cache_explanation) describes that distinction.
+
+These mechanics helped me separate three budgets: tokens, money, and time. They influence each other, but measuring one doesn't tell me the other two. Reducing input may do little for a request dominated by output generation. Moving to a cheaper model may change how much output it needs. Reorganizing a stable prompt may affect cache reuse without making the prompt shorter.
+
+## Start with the bill, then account for the workflow
+
+For a simplified text request, I can write the provider cost as:
+
+$$
+C_{\text{request}} =
+\frac{n_u p_u + n_c p_c + n_o p_o}{10^6}.
+$$
+
+Here, $n_u$ is uncached input, $n_c$ is cached input, and $n_o$ is billable output. Each $p$ is an invented price per million tokens when used in the examples below. The input categories are disjoint: a cached token must not also be counted as uncached.
+
+This is a model for reasoning about costs, not a universal invoice parser. A provider may charge separately for cache writes, storage, tools, or other modalities. Billable output can include tokens absent from the visible answer. The accounting has to follow the provider's actual usage categories.
+
+Take an entirely synthetic request with 6,000 uncached input tokens and 500 output tokens. At invented prices of \$2 per million input tokens and \$8 per million output tokens, it costs:
+
+$$
+\frac{6{,}000(2) + 500(8)}{10^6} = \$0.016.
+$$
+
+Eight such calls cost \$0.128. Ten thousand workflows containing those eight calls cost \$1,280 in provider usage, before tools or gateway infrastructure. These numbers demonstrate multiplication, not Tokenomics performance.
+
+That distinction becomes more useful when a workflow branches. A cheap first attempt followed by a retry is two paid attempts. A compression model's call is another expense. A failed run still consumed resources, even though it produced no accepted result.
+
+For that reason, the denominator I care about is completed work:
+
+$$
+C_{\text{per success}} =
+\frac{\text{total cost of all attempted workflows}}
+{\text{number meeting the task's success criteria}}.
+$$
+
+A system that lowers average call cost while creating more failed workflows can make this number worse.
+
+## Why I put the decisions behind a gateway
+
+Tokenomics exposes an OpenAI-compatible API interface. The objective was to let applications keep their business logic while moving optimization policies to a shared boundary.
+
+Without that boundary, every application has to understand model tiers, account for usage, decide when to reuse work, and implement its own fallback behavior. Those copies drift. A policy that looks cheap in one application may behave differently in another because the workloads and checks differ.
+
+The gateway gives those decisions a common place to be configured and measured. It also gives them a common place to go wrong. Adding an intermediary adds processing time, failure modes, and responsibility for preserving the request's meaning.
+
+![Conceptual comparison: direct application-to-provider calls versus an application using Tokenomics policy and accounting before model execution.](diagrams/gateway.svg)
+
+*The boundary I wanted: application behavior on one side, resource decisions on the other. This is a conceptual view, not a deployment diagram.*
+
+Compatibility matters beyond accepting a familiar JSON shape. Messages, tool definitions, generation settings, responses, and error behavior form part of the application contract. A gateway cannot quietly change those semantics just because an alternative request is smaller.
+
+There are limits to what the gateway can infer. The application knows whether an action is consequential, whether information is fresh, and what counts as completion. A model request doesn't necessarily contain that knowledge. My architectural objective was transparent adoption; that doesn't make application context unnecessary. Some optimization choices need explicit constraints rather than guesses from the prompt.
+
+## A request through the system
+
+At a conceptual level, Tokenomics receives a request, analyzes its structure, applies eligible policies, considers reuse, selects a model, executes it, and records what happened. The exact order can vary with configuration. This drawing describes responsibilities rather than a fixed sequence of internal functions.
+
+![Conceptual request lifecycle: ingest and analyze, apply eligible context and reuse policies, route and execute, then account for the result. Observability spans the lifecycle.](diagrams/lifecycle.svg)
+
+*A policy-dependent lifecycle. An ineligible optimization should leave a request intact rather than force every request through the same transformation.*
+
+Consider a synthetic assistant asked to explain a device fault using a supplied manual. Its request contains the current fault, earlier discussion, a manual excerpt, and tools for retrieving more information.
+
+Analysis needs to separate those parts. A large tool description is a different opportunity from repeated conversational text. A repeated safety constraint is different from an irrelevant paragraph. Counting the total alone cannot distinguish them.
+
+A context policy might identify a passage unrelated to the fault, while preserving the fault code, relevant instructions, and tool schemas. Cache evaluation would need to establish whether the answer depends on current device state. Routing would need to consider the requested reasoning and tool capabilities. If execution required escalation, accounting would need both attempts.
+
+Those are illustrative decisions, not a record of a customer request. They expose an important dependency: optimization needs an account of what information matters, and that account is always imperfect.
+
+I use the following independently written pseudocode to express the boundary I want a gateway to respect:
+
+```python
+# Conceptual pseudocode, not Tokenomics source.
+async def handle(request, policy):
+    original = preserve_request(request)
+    record = begin_measurement(original)
+    candidate = original
+
+    if policy.allows_context_changes:
+        proposal = await propose_context_change(original)
+        if satisfies_declared_constraints(original, proposal):
+            candidate = proposal
+
+    route = choose_eligible_route(candidate, policy)
+    result = await execute_with_policy(candidate, route, policy)
+    record_attempts_and_usage(record, result)
+    return result.response
+```
+
+The difficult functions are deliberately named rather than hidden. A constraint check is only as strong as the properties it can verify. Passing a structural check does not prove that a rewritten prompt preserves every useful distinction.
+
+## Routing is a decision about expected work
+
+I worked on cost-aware routing across model tiers because requests do not all require the same capability. Extracting a field from a short document and reconciling conflicting evidence can arrive through the same endpoint while imposing very different demands.
+
+A tier is a policy category, not a guarantee of quality. Model suitability also depends on tool support, output format, context limits, language, and the particular task distribution. Prompt length is a poor substitute for all of that: a short question can be difficult, and a long extraction request can be routine.
+
+![Conceptual routing: determine eligible models under task and policy constraints, choose a tier, execute, and either accept, escalate within budget, or return a failure.](diagrams/routing.svg)
+
+*The public model of routing and escalation. Exact classifiers, thresholds, and acceptance checks are intentionally unspecified.*
+
+The economics of escalation can be expressed without disclosing a routing policy. Suppose a lower-tier attempt costs $c_s$, a larger-model attempt costs $c_l$, a fraction $e$ of lower-tier attempts escalate, and routing adds overhead $c_r$.
+
+Under the simplifying assumption that escalation costs the same as going directly to the larger model:
+
+$$
+\mathbb{E}[C_{\text{routed}}] = c_r + c_s + e c_l.
+$$
+
+It is cheaper than always paying $c_l$ only when:
+
+$$
+e < 1 - \frac{c_r + c_s}{c_l}.
+$$
+
+For invented costs of \$0.003, \$0.020, and \$0.001 for $c_s$, $c_l$, and $c_r$, respectively, that boundary is an escalation fraction below 0.8. At an illustrative escalation fraction of 0.3, expected cost is \$0.010. That calculation says nothing about whether either path is good enough.
+
+It also omits an expensive problem: an incorrect answer that looks acceptable and never escalates. Cost accounting alone cannot detect that failure. Routing evaluation needs labeled outcomes for difficult cases, alongside measures of unnecessary escalation and missed escalation.
+
+Reliability fallback and quality escalation deserve separate treatment. A provider timeout doesn't mean the task exceeded a model's capability. A syntactically valid but wrong answer doesn't mean the provider was healthy in the sense the application cares about. They need different evidence and may justify different responses.
+
+## Compression has to preserve distinctions
+
+Removing text is easy. Removing text while preserving what a later computation needs is difficult.
+
+My work on compression and context optimization kept returning to this distinction. Some input is repeated. Some is verbose. Some looks unimportant until the workflow reaches a step where it matters. Those categories cannot be identified reliably by length alone.
+
+Consider a synthetic instruction:
+
+```text
+Explain the proposed maintenance action.
+Do not authorize execution.
+Execution requires approval from an operator.
+```
+
+A shorter candidate might be:
+
+```text
+Explain the maintenance action; execution needs operator approval.
+```
+
+It is shorter in characters, but it weakens an explicit prohibition. Whether a model interprets it identically needs testing. The example does not establish token savings either; that requires the actual tokenizer and serialization.
+
+Tool definitions have another constraint. Field names, types, required arguments, and descriptions carry operational meaning. A fluent summary of a schema is not a replacement for the schema the calling interface expects. Structured identifiers, numerical limits, units, and negation deserve similar care.
+
+![Conceptual context policy: distinguish request parts, protect constraints and structure, propose changes only to eligible content, check them, and compare with baseline outcomes.](diagrams/context.svg)
+
+*Information preservation limits what can be compressed. This diagram describes the reasoning framework, not a disclosed compression algorithm.*
+
+I found it more useful to reason about the role of a passage than call the entire prompt compressible. Historical discussion, retrieved evidence, instructions, and tool contracts serve different purposes. Summarizing old conversation may discard a decision. Selecting a narrower document excerpt may omit an exception.
+
+There is also an interaction with caching: rewriting a stable instruction can make a reusable prefix different. Compression can therefore reduce token count while sacrificing a cheaper execution path. The unit of evaluation has to be the final request and outcome, including the other policies it interacts with.
+
+## Skills make recurring structure visible
+
+Skills-aware processing was another part of my work: treating recurring instructions and task structures as reusable material instead of unrelated strings. I explored fingerprinting and hashing to identify repetition, and reusable skills and templates as a way to manage it.
+
+The exact object being fingerprinted matters. A hash of the complete request changes whenever the user message changes. A hash of a selected instruction block can reveal a stable portion shared across different requests. Normalizing text before hashing is itself a choice: normalization must not erase distinctions that affect behavior.
+
+![Conceptual skills processing: identify recurring prompt structures, explore fingerprints and reusable templates, then resolve the full context needed by the model. Versioning is a design concern.](diagrams/skills.svg)
+
+*Skills and fingerprinting were areas of work and exploration. A reusable identifier is not, by itself, a reduction in model input.*
+
+A skill identifier can save application authors from duplicating instructions. If the gateway expands that identifier into the original text before calling the model, the model still receives that text. Prompt management has improved; provider-visible token consumption may be unchanged.
+
+Actual savings need another mechanism: a shorter equivalent representation, selective inclusion, a cache benefit, or a receiving system that can resolve the reference. It would be misleading to count an application request's small identifier as the entire model input.
+
+Versioning follows from the same reasoning. Changing a reusable instruction changes the meaning of dependent requests. A robust design needs to know which version was resolved, which outcomes belong to it, and whether older cache entries remain valid. These are design requirements I would use to assess a skills system, not a claim that the public article exposes a particular registry implementation.
+
+## Caching is several different promises
+
+I worked on caching strategies as a way to avoid repeated computation. But the word *cache* hides several different contracts, and confusing them leads to bad accounting and incorrect reuse.
+
+| Mechanism | What it reuses | What it must establish |
+| --- | --- | --- |
+| Exact response cache | A previously generated answer | The relevant request and external state are equivalent |
+| Semantic response cache | An answer associated with a similar request | Similarity is sufficient for the task's correctness requirements |
+| Provider prompt cache | Provider-managed processing of reusable input | The request satisfies that provider's matching and retention rules |
+| Inference prefix cache | Internal state for a shared token prefix | The serving engine can safely reuse the prefix state |
+| KV cache during decoding | Keys and values for preceding tokens | The state belongs to the sequence being continued |
+
+A response cache can skip model execution altogether. A prompt or prefix cache can reuse input processing while the model still generates a new response. Those are different savings.
+
+OpenAI's [prompt caching documentation](https://developers.openai.com/api/docs/guides/prompt-caching) describes provider-managed reuse and the usage fields needed to account for it. vLLM's [automatic prefix caching documentation](https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/) describes reusing KV state for shared prefixes. These are external mechanisms, not capabilities I am claiming Tokenomics implements inside an inference engine.
+
+![Cache ownership boundaries: gateway response reuse, provider prompt reuse, and inference-engine prefix and KV state reuse. These mechanisms are distinct, not mandatory stages.](diagrams/caching.svg)
+
+*Caching mechanisms grouped by where they operate. This is a taxonomy, not a declaration that every mechanism is enabled in Tokenomics.*
+
+For response reuse, matching the latest user sentence is rarely enough. Model version, instructions, tool behavior, generation settings, permissions, and relevant external state may all change the answer. A tenant boundary must remain a boundary even when two users ask identical questions.
+
+Consider the synthetic question, “Can this job run now?” The words can match exactly while the answer changes because a resource is unavailable or an approval has been withdrawn. A time-to-live limits how long an answer survives; it does not prove the underlying state remained true.
+
+Semantic similarity adds another risk. “May I delete this record?” and “How do I delete this record?” are close in topic while asking different things. A similarity score measures the representation's notion of closeness, not authorization or equivalence.
+
+This is why I treat caching as a correctness decision first. The public account does not specify Tokenomics cache keys, isolation implementation, or supported cache modes. Those details should not be inferred from the list of mechanisms above.
+
+## Measurement had to come before aggressive optimization
+
+I worked on baseline recording and request-level instrumentation because I needed a way to tell whether a change helped. Without a baseline, a smaller prompt can look like an improvement even when it changes the task.
+
+The instrumentation work examined token distribution across message roles, repeated instructions, conversation history, tool overhead, recurring structures, model selection, execution costs, and optimization latency. These categories make a total explainable.
+
+Suppose a synthetic request budget is dominated by tool definitions. Rewriting the latest user sentence is unlikely to address the main source of input. Suppose most latency comes after the first generated token. Measuring only gateway processing time will miss that part of the experience.
+
+The accounting boundary matters as much as the metric. Local token counts are estimates until reconciled with the provider's serialization and reported usage. Role-by-role attribution is useful diagnostically, but message formatting overhead means independently tokenizing each field need not reproduce the provider total.
+
+I also explored shadow-mode experiments: observing a production request and evaluating a proposed optimization separately from the served path. This is useful for finding repeated material and estimating candidate reductions before changing behavior. It does not, by itself, prove preserved quality. A candidate must actually be evaluated to establish how its output behaves; running that evaluation has a cost too.
+
+![Conceptual evaluation loop: record a baseline, construct a candidate policy, evaluate on matched cases, compare cost and outcomes, and decide whether to retain the policy. Shadow analysis remains separate from served behavior.](diagrams/measurement.svg)
+
+*The measurement loop. Shadow mode and fingerprinting were explored; the diagram does not assert a deployed experiment service.*
+
+There is an observability trade-off here. Raw prompts make debugging easier but may expose sensitive material. Counts, policy identifiers, versioned fingerprints, timings, and outcome labels can answer many questions without retaining full text. A hash also isn't a privacy guarantee: predictable inputs may be guessed and hashed. Telemetry needs its own data-handling rules.
+
+## A smaller prompt can still be a more expensive request
+
+Here is a second synthetic calculation to make the interaction concrete. Assume a request has 6,000 input tokens and generates 500 output tokens. Invented prices are \$2 per million ordinary input tokens, \$0.50 per million cached input tokens, and \$8 per million output tokens. No cache-write or other charges are included in this example.
+
+| Synthetic scenario | Ordinary input | Cached input | Output | Calculated cost |
+| --- | ---: | ---: | ---: | ---: |
+| No input reuse | 6,000 | 0 | 500 | \$0.016 |
+| Stable prefix reused | 2,000 | 4,000 | 500 | \$0.010 |
+| Shorter input, reuse lost | 4,000 | 0 | 500 | \$0.012 |
+
+The shorter request costs less than the uncached baseline but more than the longer cached request. It also might have different quality. No ranking of these scenarios is complete without that outcome.
+
+For a similarly synthetic latency calculation, suppose a context optimizer takes 35 milliseconds and avoids 20 milliseconds of downstream work. End-to-end latency increases by 15 milliseconds, even though downstream execution improved. That may be acceptable for a batch job and unacceptable for an interactive step. The example is arithmetic, not a measurement from the project.
+
+This was the reason I wanted measurements at more than one boundary. Gateway time, provider time, time to first token, complete-response time, and workflow duration answer different questions. Adding component timings can also be wrong when operations overlap; the overall critical path has to be measured directly.
+
+## Reliability changes the optimization budget
+
+The gateway is another component that can fail. Request analysis can take too long. A proposed context change can lose information. A smaller model can return an unusable result. A provider can rate-limit a request after the gateway has already spent time processing it.
+
+I worked on escalation and fallback mechanisms, but I don't want to turn that statement into an unsupported claim of complete fault tolerance. The mechanisms need explicit limits and evaluation. In particular, fallback should not become an unbounded chain of paid attempts.
+
+A conceptual policy has three budgets: how much more money can be spent, how much time remains, and which alternatives preserve the application's constraints. Moving to another provider might violate a deployment restriction even if it succeeds technically. Moving to another model might change tool support or output behavior.
+
+Streaming adds a boundary worth calling out. Before any output reaches the client, a retry can potentially be hidden behind the original request. After a partial answer is visible, silently replacing it can duplicate or contradict content. The application needs a defined failure contract. This is a general gateway concern, not a disclosure of Tokenomics streaming internals.
+
+Tool execution introduces a separate boundary. Retrying a model call and repeating an external action are not equivalent. If an action already happened, generating another instruction to do it can be costly in a way that token accounting cannot express.
+
+There are requests where optimization should be bypassed. If I cannot establish that a transformation preserves a required constraint, leaving the request intact is a defensible decision. That does not mean a network failure should trigger an unauthorized direct provider call; bypassing a transformation and bypassing access controls are different actions.
+
+## How I evaluate an optimization
+
+Internal experiments examined combinations of optimization techniques, including input reduction, estimated execution cost, gateway overhead, routing effectiveness, repeated context, and task quality. I am not publishing the benchmark data or internal savings figures.
+
+The methodology is still useful to explain. The baseline has to represent a real alternative: the same task inputs, required behavior, and an appropriate unoptimized path. Comparing a short easy request to a long difficult one says little about a gateway policy.
+
+I would organize a representative evaluation set by workload shape: structured extraction, constrained generation, evidence-heavy questions, tool use, and multi-step workflows. It should include cases where the correct decision is to preserve the input and cases where a lower-tier model is a poor fit. An easy-only set rewards an overly aggressive router.
+
+The acceptance criteria have to be task-specific. Valid JSON is a structural check. Correct fields require reference answers or another verification method. Correct tool arguments don't prove the tool should have been called. For workflows, completion must include the required final state, not just an agreeable final message.
+
+For each baseline–candidate comparison, I want the model and policy versions, input set, tokenizer assumptions, concurrency, cache state, retry behavior, and sample size recorded. I also want to know which requests failed. Stochastic outputs warrant repeated runs or uncertainty estimates rather than a single favorable response.
+
+The measurements should include total cost, input and output categories, completed tasks, quality failures, escalation frequency, cache reuse, optimizer overhead, and end-to-end latency. Median latency alone can hide costly slow requests; tail behavior matters for workflows with several dependent calls.
+
+Finally, I would separate individual policy effects from combinations. Compression, routing, and caching interact. Adding their independently measured savings can double-count the same avoided work. A combined policy needs its own matched evaluation.
+
+## The objective is constrained, not absolute
+
+The most important architectural decision was what to optimize for. Minimum tokens is easy to define and inadequate. Minimum billed cost is more relevant and still inadequate when a failed task is cheap.
+
+I frame the decision as minimizing expected workflow cost subject to explicit quality and reliability requirements:
+
+$$
+\begin{aligned}
+\min_{\pi}\quad &\mathbb{E}[C_{\text{workflow}}(\pi)]\\
+\text{subject to}\quad
+&\Pr(\text{task succeeds}\mid\pi) \ge q_{\min},\\
+&L_{95}(\pi) \le L_{\max},\\
+&\pi\text{ preserves required application constraints.}
+\end{aligned}
+$$
+
+Here, $\pi$ is an optimization policy and $L_{95}$ is a chosen tail-latency measure. This is a formulation of the engineering objective, not a claim that Tokenomics contains a mathematical solver or enforces these exact thresholds.
+
+![Conceptual policy selection: candidate routing and context decisions must meet task quality, latency, and reliability constraints before comparing expected workflow cost.](diagrams/tradeoffs.svg)
+
+*The cost comparison belongs inside the set of acceptable outcomes. This is a decision framework, not a measured cost–quality frontier.*
+
+There is no universal setting for the constraints. A delayed background report and an interactive action have different requirements. A policy needs an application-specific definition of acceptable behavior before its savings mean much.
+
+That changed how I thought about infrastructure transparency. Hiding every decision would make integration look easy, but it would also conceal the reasons a request became cheaper, slower, or less reliable. The useful abstraction preserves a simple calling interface while making important policy decisions observable.
+
+## What I would work on next
+
+The directions I want to investigate follow from those limits. A learned router could use observed task outcomes rather than a fixed notion of complexity, but it would need continuous evaluation as models and workloads change. A quality-aware escalation policy would need to distinguish detectable uncertainty from confident mistakes.
+
+Adaptive compression could vary the amount of context removed according to the task and remaining budget. Agent-aware context management could preserve decisions and evidence needed later in the workflow, rather than treating every request independently. Predictive token budgeting could help expose an expensive path before the agent commits to it.
+
+Workflow-level optimization is especially interesting to me. A larger model that chooses the right tool immediately may be more economical than several smaller-model attempts. The decision spans multiple requests, so a gateway's local view may be insufficient without information from the agent runtime.
+
+Integration with inference-serving infrastructure is another opportunity: understanding prefix reuse, queueing, and actual execution behavior could improve decisions that currently rely on request-level signals. These are future directions, not a list of shipped features.
+
+Tokenomics began with a practical concern: the application was asking for model computation without consistently deciding how much it needed. Building the gateway made that concern more precise. Model capability, context, and repeated work are resources to allocate against the requirements of a task. The useful result is a completed task whose cost and behavior I can explain.
