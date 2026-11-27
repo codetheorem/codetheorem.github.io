@@ -1,0 +1,156 @@
+---
+title: "Why Run the Same Transformer Layers Again?"
+description: "How repeated layers change what a language model can compute, why the same weights can produce different results, and where the time and memory costs go."
+breadcrumbTitle: "Looped Transformers"
+pubDate: 2026-11-27
+---
+
+A model has already run a piece of text through a layer. Why would running it through that same layer again help?
+
+At first, it sounds like doing the same calculation twice and hoping for a better answer. But the second pass receives a different input: the state produced by the first. That difference is enough to make repetition useful.
+
+The idea is easier to understand if we separate two things that model size tends to bundle together: how many learned numbers a model stores, and how many operations it performs before producing a token.
+
+## What happens before the next token
+
+A language model takes the text so far and predicts a distribution over possible next tokens. Tokens are pieces of text; they can be words, parts of words, or punctuation.
+
+Inside a transformer, those tokens are represented by vectors. Each layer updates the vectors using information from the context and transformations learned during training. After the final layer, the model converts the resulting representation into scores for the next token.
+
+We can write a stack of layers as:
+
+$$
+h_1 = F_1(h_0), \qquad
+h_2 = F_2(h_1), \qquad
+h_3 = F_3(h_2).
+$$
+
+Here, $h$ is the working state and each $F$ is a layer with its own weights. I've left out attention details and residual connections because the part we need is the dependency: the third transformation works on the result of the second.
+
+More layers give the model more sequential transformations before it has to predict a token. In an ordinary stack, they also add more weights to store.
+
+Those two costs don't have to grow together.
+
+## Reuse the transformation, update the state
+
+Suppose we use the same block three times:
+
+$$
+h_1 = F_\theta(h_0), \qquad
+h_2 = F_\theta(h_1), \qquad
+h_3 = F_\theta(h_2).
+$$
+
+The subscript $\theta$ means every application uses the same learned weights. The working state changes after each application.
+
+Consider a deliberately small example: $F(x) = x + 2$. Starting at zero, three applications produce 2, then 4, then 6. One rule, three dependent steps. Reusing a rule doesn't imply repeating its result.
+
+A transformer block is vastly more complicated, but the distinction holds. Its weights specify how to transform a state. They aren't a stored answer that gets returned unchanged each time.
+
+That also explains why loops might help with a chain of dependencies. Suppose a prompt contains:
+
+```text
+Mira reports to Dev.
+Dev reports to Noor.
+Noor reports to Isha.
+
+Who is three reporting steps above Mira?
+```
+
+An iterative procedure can maintain a current person and follow one link per step. After finding Dev, it has a new starting point for finding Noor, then Isha. A learned block could use successive passes to perform this kind of state update.
+
+This is an example of a computation that benefits from iteration, not a claim that a real model assigns exactly one relationship to each pass. Attention may combine several links in one pass; a trained model may learn another procedure entirely.
+
+## What weight sharing buys
+
+Imagine a model with an opening block, a reusable middle block, and a final block. If their parameter counts are $P_{\text{in}}$, $P_{\text{core}}$, and $P_{\text{out}}$, the stored parameter count is:
+
+$$
+P = P_{\text{in}} + P_{\text{core}} + P_{\text{out}}.
+$$
+
+Running the middle block $k$ times doesn't multiply its stored weights by $k$. But it does repeat its computation. Ignoring overhead, the work looks roughly like:
+
+$$
+C(k) = C_{\text{in}} + kC_{\text{core}} + C_{\text{out}}.
+$$
+
+This is the useful trade: more sequential computation within a fixed weight budget. You're still paying for the operations.
+
+There's a constraint too. Three independent blocks can learn three different transformations. A shared block has to learn a transformation that remains useful at several stages. Whether that restriction helps or hurts depends on the task and training.
+
+## Inkling 2 Mini makes the distinction concrete
+
+Thinking Machines released Inkling 2 Mini on November 20, 2026. It stores 24 layers: six at the beginning, twelve in the middle, and six at the end. The middle twelve run three times, giving $6 + 3(12) + 6 = 48$ layer applications per token. Its reported roughly 20 GB footprint also depends on expert pruning and low-bit weights. Looping alone doesn't explain that size. [Model announcement](https://thinkingmachines.ai/news/inkling-2-mini/).
+
+Its loop is more structured than the simple recurrence above. Each pass starts from the opening block's output and receives information from the preceding pass through learned gates. The gates initially block those messages and learn to admit them during training. [Architecture details](https://thinkingmachines.ai/news/inkling-2-mini/#looping-design).
+
+The recurrence explains the principle; those message paths describe how this particular model implements it.
+
+## Training has to make the repetition useful
+
+Wrapping an arbitrary pretrained block in a loop doesn't give it an iterative algorithm. Its next application may receive states it wasn't trained to handle.
+
+During training, a shared block appears several times in the computation graph. The loss depends on all those appearances. Backpropagation follows each path, and the contributions accumulate into the gradient for the same weights:
+
+$$
+\nabla_\theta L
+= \sum_{j=1}^{k}
+\left.\nabla_\theta L\right|_{\text{use }j}.
+$$
+
+Each contribution includes the effect that use has on later computation. This is the same basic accounting used when training a recurrent network through its unrolled steps.
+
+The model therefore has to learn an update that works on an initial state and on states produced by earlier updates. Repetition gives it an opportunity to refine a representation. The training objective determines whether it learns to use that opportunity.
+
+## Why generate reasoning tokens at all?
+
+Generating intermediate text is another way to extend a model's computation. Every new token becomes part of the context for subsequent predictions. A written partial result can support the next step.
+
+Looping adds steps inside the computation for a token. Written reasoning adds steps by generating more tokens. A model can use both.
+
+The time comparison depends on both quantities. As a rough decoding calculation:
+
+$$
+T_{\text{decode}} \approx N_{\text{generated}}\,t_{\text{per token}}.
+$$
+
+For a made-up example, suppose a baseline generates 2,000 tokens at 4 milliseconds each. That's about eight seconds of decoding. A looped model generating 1,000 tokens at 7 milliseconds each takes about seven seconds. If it needs 1,500 tokens instead, it takes about ten and a half seconds.
+
+Fewer tokens can offset slower token generation, but the arithmetic has to work. Real requests also include prompt processing, scheduling, tools, and other overhead.
+
+The lab reports shorter reasoning traces as loop count increases in its variable-loop research model. That is evidence for this trade on the evaluated workloads; it doesn't establish the latency of an application. [Research results](https://thinkingmachines.ai/news/inkling-2-mini/).
+
+## Shared weights still need working memory
+
+During generation, transformers cache attention keys and values for earlier tokens. This KV cache lets the model use the preceding context without recomputing all of it for every new token.
+
+Shared weights don't imply identical cache contents. Different passes operate on different states, so their keys and values can differ too.
+
+In vLLM's Inkling implementation, every pass has its own KV cache and convolution state. The model has 24 stored layers but 48 cache entries of each kind. The cache manager handles each pass as an ordinary cache layer. [vLLM engineering post](https://vllm.ai/blog/2026-11-20-inkling2-mini).
+
+That creates two separate memory budgets: the weights and the state needed to serve the current requests. Context length and concurrent requests affect the second budget. A small weight file doesn't, by itself, tell you how many long conversations will fit.
+
+Repeated applications also require repeated access to the weights. Hardware caches, batching, and kernel implementation determine how much of that access reaches device memory. The model's file size is only part of the performance calculation.
+
+## Why stop after a few passes?
+
+Nothing in $h_{j+1} = F_\theta(h_j)$ guarantees that another application improves the answer. The state might become useful after several updates, stop changing much, or drift into something worse.
+
+Training at a particular range of depths also doesn't guarantee reliable behavior far beyond it. Choosing when to stop is a separate problem.
+
+The [Universal Transformer paper](https://arxiv.org/abs/1807.03819), first submitted in 2018, combined repeated transformations with a learned halting mechanism. [ALBERT](https://arxiv.org/abs/1909.11942) later used parameter sharing across layers to reduce model size. More recently, [Ouro](https://arxiv.org/abs/2510.25741) studied looped language models with learned depth allocation. Repeated computation and shared parameters have a research history; the practical question is how well a particular design works at a particular budget.
+
+For Inkling 2 Mini, the released model uses a fixed three passes. The separate research checkpoint supports variable loop counts; vLLM rejects those overrides on the fixed-loop model. [Checkpoint behavior](https://vllm.ai/blog/2026-11-20-inkling2-mini).
+
+## What I would measure
+
+For a coding agent, I'd compare completed tasks at the same time and memory budget. That comparison needs the whole run: prompt processing, generated tokens, tool calls, retries, and failed attempts. A faster stream of tokens is useful only insofar as it helps finish the job.
+
+I'd also separate tasks that need several dependent operations from tasks that mostly need factual recall. An extra pass can help manipulate information already available in the weights or context. It doesn't supply a missing fact.
+
+What interests me about looping is that it forces a more precise question about model size. Once we specify the stored weights, we still haven't specified how much work the model does before answering. We can reuse those weights and spend more time updating the state. Whether that is a good bargain is something we can measure.
+
+---
+
+This post was prompted by [Saylee's explanation of looping](https://saylee21.github.io/articles/looping.html). The examples and derivations here are my own exposition; model-specific details are linked to the original announcement and engineering notes.
