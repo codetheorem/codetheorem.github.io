@@ -13,15 +13,9 @@ const active = (href: string) =>
 
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="site-header">
-	<div class="masthead">
-		<a href="/" class="brand"
-			>Hrishikesh Agarwal<span>Engineering &amp; inquiry</span></a
-		>
-		<div class="header-tools">
-			<a href="/writing/#search" aria-label="Search the publication">Search</a
-			><ThemeToggle />
-		</div>
-	</div>
+	<a href="/" class="brand" aria-label="Hrishikesh Agarwal home"
+		>hrishikesh<span>.</span>agarwal</a
+	>
 	<nav aria-label="Main navigation">
 		{
 			NAV_LINKS.map((link) => (
@@ -34,74 +28,76 @@ const active = (href: string) =>
 			))
 		}
 	</nav>
+	<div class="header-tools">
+		<a href="/writing/#search">Search</a><ThemeToggle />
+	</div>
 </header>
 <style>
 	.site-header {
-		width: min(100% - 3rem, 1080px);
+		width: min(100% - 2.5rem, 1040px);
 		margin: 0 auto;
-		padding: 1.8rem 0 0;
-	}
-	.masthead {
 		display: flex;
-		justify-content: space-between;
 		align-items: center;
-		gap: 1rem;
-		padding-bottom: 1.5rem;
+		flex-wrap: wrap;
+		gap: 1rem 1.75rem;
+		padding: 1.4rem 0;
+		border-bottom: 1px solid var(--text-color);
 	}
 	.brand {
-		font: 400 1.4rem/1.2 var(--font-family-heading);
+		font: 700 0.875rem/1.5 var(--font-family-code);
 		color: var(--text-color);
 		text-decoration: none;
+		white-space: nowrap;
 	}
 	.brand span {
-		display: block;
-		font: 400 0.73rem/1.6 var(--font-family-base);
-		letter-spacing: 0.04em;
-		color: var(--text-color-muted);
-		margin-top: 0.4rem;
-	}
-	.header-tools {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		font-size: 0.875rem;
-	}
-	.header-tools > a {
-		color: var(--text-color-muted);
-		text-decoration: none;
+		color: var(--accent-blue);
 	}
 	nav {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.75rem 1.7rem;
-		border-top: 1px solid var(--border-color);
-		border-bottom: 1px solid var(--border-color);
-		padding: 0.9rem 0;
+		gap: 0.7rem 1.15rem;
+		margin-left: auto;
 	}
-	nav a {
-		font-size: 0.875rem;
-		color: var(--text-color-light);
+	nav a,
+	.header-tools > a {
+		font: 400 0.875rem/1.5 var(--font-family-code);
+		color: var(--text-color);
 		text-decoration: none;
 	}
 	nav a:hover,
 	nav a[aria-current] {
-		color: var(--text-color);
+		color: var(--accent-blue);
 		text-decoration: underline;
-		text-underline-offset: 0.35em;
+		text-decoration-color: var(--accent-pink);
+		text-underline-offset: 0.3em;
 	}
-	@media (max-width: 600px) {
-		.site-header {
-			width: calc(100% - 2.5rem);
-			padding-top: 1.25rem;
-		}
+	.header-tools {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+	}
+	.header-tools > a {
+		font-size: 0.8rem;
+	}
+	@media (max-width: 1000px) {
 		nav {
-			gap: 0.65rem 1.15rem;
-		}
-		.brand {
-			font-size: 1.2rem;
+			order: 3;
+			flex-basis: 100%;
+			margin: 0;
 		}
 		.header-tools {
-			gap: 0.4rem;
+			margin-left: auto;
+		}
+	}
+	@media (max-width: 400px) {
+		.brand {
+			font-size: 0.78rem;
+		}
+		nav {
+			gap: 0.7rem 1rem;
+		}
+		nav a {
+			font-size: 0.8rem;
 		}
 	}
 </style>

@@ -1,8 +1,8 @@
 ---
 import Page from "../layouts/Page.astro";
-import ArticleRow from "../components/ArticleRow.astro";
 import { getCollection } from "astro:content";
-import { getWriting, readingTime, writingHref } from "../utils/publication";
+import { getWriting, writingHref, readingTime } from "../utils/publication";
+import DateMeta from "../components/DateMeta.astro";
 import "../styles/pages/home.css";
 const writing = await getWriting();
 const feature = writing.find((p) => p.data.featured)!;
@@ -16,74 +16,105 @@ const latest = writing.filter((p) => p.id !== feature.id).slice(0, 3);
 	title="AI infrastructure & systems"
 	description="Hrishikesh Agarwal's engineering publication: LLM infrastructure, inference, distributed systems, databases, and philosophy."
 	wide
+	home
 >
-	<section class="intro" aria-labelledby="intro-title">
-		<div>
-			<p class="eyebrow">AI infrastructure &amp; systems</p><h1
-				id="intro-title"
+	<section class="home-hero" aria-labelledby="intro-title">
+		<p class="paper-label">Software engineer · Bengaluru, India</p>
+		<h1 id="intro-title">
+			Hi, I'm Hrishikesh.<br />I build <span class="print-blue">AI systems</span
+			><br />that <em>do the work.</em>
+		</h1>
+		<p class="hero-intro">
+			I build agents that diagnose faults, find the right information, and carry
+			out tasks. Most of my work sits between <strong
+				>language models and the software they need to use.</strong
 			>
-				Understanding the systems<br class="desktop-break" /> behind the abstractions.
-			</h1><p class="intro-text">
-				I'm Hrishikesh, a software engineer in Bengaluru. I work on AI
-				infrastructure and agentic systems, and study inference, distributed
-				systems, and database internals.
-			</p><p class="intro-links">
-				<a href="/about/">About my work</a><span aria-hidden="true">/</span><a
-					href="/writing/">Explore the writing</a
-				>
-			</p>
-		</div><aside class="margin-note">
-			<p class="eyebrow">A recurring question</p><p>
-				What does an abstraction cost, and which promises does it actually keep?
-			</p><span>Computation · memory · state · evidence</span>
-		</aside>
-	</section>
-	<section class="feature" aria-labelledby="feature-title">
-		<div class="feature-context">
-			<p class="eyebrow">Featured engineering account</p><p class="meta">
-				Tokenomics<br />Professional project · Internal product
-			</p>
-		</div><div>
-			<h2 id="feature-title">
-				<a href={writingHref(feature)}>{feature.data.title}</a>
-			</h2><p>{feature.data.description}</p><p class="meta">
-				{readingTime(feature.body)} min read · Original diagrams · Public-safe account
-			</p><a href={writingHref(feature)}>Read the article</a>
+		</p>
+		<div class="hero-links">
+			<a class="paper-button primary" href="/writing/">Read my writing</a><a
+				class="paper-button"
+				href="/about/">A bit about me</a
+			>
 		</div>
 	</section>
-	<div class="home-columns">
-		<section aria-labelledby="recent-title">
-			<div class="section-heading">
-				<h2 id="recent-title">Recent writing</h2><a href="/writing/"
-					>All articles</a
-				>
-			</div><ul class="content-list">
-				{latest.map((entry) => <ArticleRow entry={entry} />)}
-			</ul>
-		</section><aside class="interests" aria-labelledby="interests-title">
-			<div class="section-heading">
-				<h2 id="interests-title">Current research interests</h2>
-			</div><dl>
-				<dt>LLM inference</dt><dd>
-					Execution, KV memory, batching, and the cost of generating a token.
-				</dd><dt>Distributed systems</dt><dd>
-					State, coordination, and the behavior of partial failures.
-				</dd><dt>Agentic architectures</dt><dd>
-					Tool use, context, evaluation, and the cost of completing a task.
-				</dd><dt>Database internals</dt><dd>
-					Query execution, storage, transactions, and recovery.
-				</dd><dt>Philosophy &amp; history</dt><dd>
-					Explanation, evidence, and the limits of a useful model.
-				</dd>
-			</dl><a href="/library/">On the reading desk</a>
-		</aside>
+	<div class="tools-strip" aria-label="Research interests">
+		<span>LLM inference</span><span>Distributed systems</span><span
+			>Agentic architectures</span
+		><span>Database internals</span>
 	</div>
-	<section class="home-projects" aria-labelledby="projects-title">
+	<section class="home-section" aria-labelledby="work-title">
+		<p class="section-kicker">What I work on</p><h2 id="work-title">
+			From a prompt<br />to a working system.
+		</h2>
+		<div class="work-grid">
+			<article class="work-card">
+				<p class="card-label">Agents + orchestration</p><h3>
+					Giving agents<br />a job to finish.
+				</h3><p>
+					Multi-agent workflows for predictive maintenance, conversational
+					commerce, and cloud cost governance. Deciding which agent does what,
+					how they share context, and when a person needs to step in.
+				</p><p class="card-note">LangGraph · Tool use · Human review</p>
+			</article><article class="work-card">
+				<p class="card-label">Retrieval + backend</p><h3>
+					Getting the right<br />context into place.
+				</h3><p>
+					RAG pipelines, retrieval tools, and the APIs behind them. Connecting
+					models to documents and services, then making those connections work
+					under production constraints.
+				</p><p class="card-note">RAG · FastAPI · AWS + Azure</p>
+			</article>
+		</div>
+	</section>
+	<section
+		class="home-section featured-account"
+		aria-labelledby="featured-title"
+	>
+		<p class="section-kicker">Featured engineering account</p><h2
+			id="featured-title"
+		>
+			<a href={writingHref(feature)}>{feature.data.title}</a>
+		</h2><p>{feature.data.description}</p><p class="card-label">
+			{readingTime(feature.body)} min read · Professional project · Internal product
+		</p><a class="paper-button primary" href={writingHref(feature)}
+			>Read the article</a
+		>
+	</section>
+	<section class="home-section writing-section" aria-labelledby="writing-title">
 		<div class="section-heading">
-			<h2 id="projects-title">Projects &amp; directions</h2><a href="/projects/"
-				>Project index</a
-			>
-		</div><ul>
+			<div>
+				<p class="section-kicker">Notes from the work</p><h2 id="writing-title">
+					Thinking in public.
+				</h2>
+			</div><a class="section-link" href="/writing/">All writing</a>
+		</div><ul class="writing-list">
+			{
+				latest.map((post) => (
+					<li>
+						<>
+							<div>
+								<>
+									<a href={writingHref(post)}>{post.data.title}</a>
+									<p>{post.data.description}</p>
+								</>
+							</div>
+							<DateMeta date={post.data.pubDate} as="span" />
+						</>
+					</li>
+				))
+			}
+		</ul>
+	</section>
+	<section class="home-section" aria-labelledby="projects-title">
+		<div class="section-heading">
+			<div>
+				<p class="section-kicker">Projects &amp; directions</p><h2
+					id="projects-title"
+				>
+					Building. Studying.<br />Asking better questions.
+				</h2>
+			</div><a class="section-link" href="/projects/">Project index</a>
+		</div><ul class="project-index">
 			{
 				projects.map((p) => (
 					<li>
@@ -92,28 +123,57 @@ const latest = writing.filter((p) => p.id !== feature.id).slice(0, 3);
 								<a href={`/projects/${p.id}/`}>{p.data.title}</a>
 							</h3>
 							<p>{p.data.description}</p>
-							<span class="meta">{p.data.kind}</span>
+							<span class="card-label">
+								{p.data.kind} · {p.data.status}
+							</span>
 						</>
 					</li>
 				))
 			}
 		</ul>
 	</section>
-	<section class="home-bottom">
+	<section class="home-section resources-grid">
 		<div>
-			<p class="eyebrow">A longer reading path</p><h2>
-				<a href="/books/llm-inference/">Notes on LLM Inference</a>
+			<p class="section-kicker">Longer explanations</p><h2>
+				Study the<br />machinery.
 			</h2><p>
-				A working manuscript on execution, memory, and measurement. Three
-				chapters to start with.
-			</p><a href="/books/llm-inference/">Open the manuscript</a>
+				A three-chapter working manuscript on inference, memory, and
+				measurement, alongside annotated sources for further study.
+			</p><p>
+				<a href="/books/llm-inference/">Notes on LLM Inference</a> · <a
+					href="/library/">Reading library</a
+				>
+			</p>
 		</div><div>
-			<p class="eyebrow">From the notebook</p><h2>
-				<a href="/worklogs/">Work in progress</a>
+			<p class="section-kicker">The wider notebook</p><h2>
+				Beyond the<br />implementation.
 			</h2><p>
-				Experiments and engineering decisions, kept separate from finished
-				explanations.
-			</p><a href="/worklogs/">Read the worklogs</a>
+				Engineering decisions and experiments in the <a href="/worklogs/"
+					>worklogs</a
+				>. Questions about evidence, explanation, and history in <a
+					href="/philosophy/">philosophy</a
+				>.
+			</p>
+		</div>
+	</section>
+	<section class="contact-section" aria-labelledby="contact-title">
+		<p class="section-kicker">Compare notes</p><h2 id="contact-title">
+			Let's talk<br /><span class="print-blue">shop.</span>
+		</h2><p>
+			Working on agents, inference, retrieval, or backend systems? I'd like to
+			hear what you're building and what's proving difficult.
+		</p><div class="hero-links">
+			<a class="paper-button primary" href="mailto:hrishikeshagarwalv@gmail.com"
+				>Email me</a
+			><a
+				class="paper-button"
+				href="https://linkedin.com/in/hrishikesh-agarwal"
+				rel="noopener noreferrer">LinkedIn</a
+			><a
+				class="paper-button"
+				href="https://github.com/codetheorem"
+				rel="noopener noreferrer">GitHub</a
+			>
 		</div>
 	</section>
 </Page>

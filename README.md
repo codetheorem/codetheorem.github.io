@@ -77,7 +77,7 @@ A library entry declares an external `url`, `author`, `kind`, topics in `tags`, 
 
 `.github/workflows/deploy.yml` builds on pushes to `main` and publishes `dist/` using GitHub Pages. No custom routing service, server rewrite, or database is required. Preserve `astro.config.ts`'s production `site` value when updating metadata.
 
-The main layouts use system fonts, locally served KaTeX assets, static HTML, and small interaction scripts. Mermaid's larger renderer is dynamically imported only after a reader asks to render a diagram. No automatic animation or client-rendered application shell is used.
+The main layouts retain the paper-textured visual design, Bricolage Grotesque headings and body text, and Space Mono code. KaTeX assets are served locally; pages use static HTML and small interaction scripts. Mermaid's larger renderer is dynamically imported only after a reader asks to render a diagram. No automatic animation or client-rendered application shell is used.
 
 The light theme is the default; an explicit dark-theme choice persists when browser storage is available. All text remains readable if storage or JavaScript is unavailable. Wide code, tables, math, and labeled diagrams scroll within their own containers.
 

@@ -32,7 +32,7 @@
 	margin: 1rem 0;
 }
 .prose {
-	font: 400 1.18rem/1.85 var(--font-family-prose);
+	font: 400 1.125rem/1.8 var(--font-family-prose);
 }
 .prose p {
 	margin-bottom: 1.5rem;
