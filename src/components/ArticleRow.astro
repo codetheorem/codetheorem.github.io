@@ -1,0 +1,43 @@
+---
+import { readingTime, shortDate, writingHref } from "../utils/publication";
+interface Props {
+	entry: {
+		id: string;
+		collection: string;
+		body?: string;
+		data: {
+			title: string;
+			description: string;
+			pubDate: Date;
+			category?: string;
+			tags?: string[];
+		};
+	};
+}
+const { entry } = Astro.props;
+---
+
+<li>
+	<div class="meta">
+		<span>{entry.data.category}</span><time
+			datetime={entry.data.pubDate.toISOString()}
+			>{shortDate(entry.data.pubDate)}</time
+		><span>{readingTime(entry.body)} min read</span>
+	</div>
+	<h3><a href={writingHref(entry)}>{entry.data.title}</a></h3>
+	<p>{entry.data.description}</p>
+	<div class="tags">
+		{
+			entry.data.tags?.map((tag) => (
+				<a class="tag" href={`/writing/?tag=${encodeURIComponent(tag)}`}>
+					{tag}
+				</a>
+			))
+		}
+	</div>
+</li>
+<style>
+	.meta {
+		margin-bottom: 0.6rem;
+	}
+</style>

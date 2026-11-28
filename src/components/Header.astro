@@ -1,93 +1,107 @@
 ---
-import HeaderLink from "./HeaderLink.astro";
 import ThemeToggle from "./ThemeToggle.astro";
-import Breadcrumbs from "./Breadcrumbs.astro";
 import { NAV_LINKS } from "../data/navigation";
-
 interface Props {
 	breadcrumbTitle?: string;
 }
-const { breadcrumbTitle } = Astro.props;
-const isHomePage = Astro.url.pathname === "/";
+const current = Astro.url.pathname;
+const active = (href: string) =>
+	current.startsWith(href) ||
+	(href === "/writing/" && current.startsWith("/blog/")) ||
+	(href === "/worklogs/" && current.startsWith("/weekly/"));
 ---
 
-<header data-site-header>
-	<nav class="site-nav" aria-label="Primary navigation">
-		<a class="brand" href="/" aria-label="Hrishikesh Agarwal home"
-			>hrishikesh<span>.</span>agarwal</a
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="site-header">
+	<div class="masthead">
+		<a href="/" class="brand"
+			>Hrishikesh Agarwal<span>Engineering &amp; inquiry</span></a
 		>
-		<div class="nav-links">
-			{
-				NAV_LINKS.map((link) => (
-					<HeaderLink href={link.href}>{link.label}</HeaderLink>
-				))
-			}
+		<div class="header-tools">
+			<a href="/writing/#search" aria-label="Search the publication">Search</a
+			><ThemeToggle />
 		</div>
-		<ThemeToggle />
+	</div>
+	<nav aria-label="Main navigation">
+		{
+			NAV_LINKS.map((link) => (
+				<a
+					href={link.href}
+					aria-current={active(link.href) ? "page" : undefined}
+				>
+					{link.label}
+				</a>
+			))
+		}
 	</nav>
-	{
-		!isHomePage && (
-			<div class="breadcrumb-row">
-				<Breadcrumbs customTitle={breadcrumbTitle} />
-			</div>
-		)
-	}
 </header>
 <style>
-	header {
-		padding: 0 1.25rem;
-	}
-	.site-nav {
-		max-width: 1040px;
+	.site-header {
+		width: min(100% - 3rem, 1080px);
 		margin: 0 auto;
+		padding: 1.8rem 0 0;
+	}
+	.masthead {
 		display: flex;
+		justify-content: space-between;
 		align-items: center;
-		gap: 1.5rem;
-		padding: 1.4rem 0;
-		border-bottom: 1px solid var(--text-color);
+		gap: 1rem;
+		padding-bottom: 1.5rem;
 	}
 	.brand {
-		font: 700 0.875rem/1.5 var(--font-family-code);
+		font: 400 1.4rem/1.2 var(--font-family-heading);
+		color: var(--text-color);
 		text-decoration: none;
-		white-space: nowrap;
 	}
 	.brand span {
-		color: var(--accent-blue);
+		display: block;
+		font: 400 0.73rem/1.6 var(--font-family-base);
+		letter-spacing: 0.04em;
+		color: var(--text-color-muted);
+		margin-top: 0.4rem;
 	}
-	.nav-links {
+	.header-tools {
 		display: flex;
-		gap: 1.4rem;
+		align-items: center;
+		gap: 1rem;
+		font-size: 0.875rem;
+	}
+	.header-tools > a {
+		color: var(--text-color-muted);
+		text-decoration: none;
+	}
+	nav {
+		display: flex;
 		flex-wrap: wrap;
-		margin-left: auto;
-		font: 400 0.875rem/1.5 var(--font-family-code);
+		gap: 0.75rem 1.7rem;
+		border-top: 1px solid var(--border-color);
+		border-bottom: 1px solid var(--border-color);
+		padding: 0.9rem 0;
 	}
-	.breadcrumb-row {
-		max-width: 760px;
-		margin: 1.25rem auto 0;
-		font: 400 0.8rem/1.6 var(--font-family-code);
+	nav a {
+		font-size: 0.875rem;
+		color: var(--text-color-light);
+		text-decoration: none;
 	}
-	@media (max-width: 720px) {
-		.site-nav {
-			flex-wrap: wrap;
-			gap: 1rem;
-		}
-		.nav-links {
-			order: 3;
-			width: 100%;
-			margin: 0;
-			gap: 1.5rem;
-		}
-		.site-nav :global(.theme-toggle) {
-			margin-left: auto;
-		}
+	nav a:hover,
+	nav a[aria-current] {
+		color: var(--text-color);
+		text-decoration: underline;
+		text-underline-offset: 0.35em;
 	}
-	@media (max-width: 380px) {
-		.nav-links {
-			gap: 1rem;
-			font-size: 0.8rem;
+	@media (max-width: 600px) {
+		.site-header {
+			width: calc(100% - 2.5rem);
+			padding-top: 1.25rem;
+		}
+		nav {
+			gap: 0.65rem 1.15rem;
 		}
 		.brand {
-			font-size: 0.8rem;
+			font-size: 1.2rem;
+		}
+		.header-tools {
+			gap: 0.4rem;
 		}
 	}
 </style>

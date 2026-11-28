@@ -1,0 +1,44 @@
+---
+import Page from "../../layouts/Page.astro";
+import ArticleRow from "../../components/ArticleRow.astro";
+import PublicationSearch from "../../components/PublicationSearch.astro";
+import { getWriting } from "../../utils/publication";
+import { SERIES } from "../../data/series";
+const entries = await getWriting();
+const categories = [...new Set(entries.map((p) => p.data.category))].sort();
+const tags = [...new Set(entries.flatMap((p) => p.data.tags))].sort();
+---
+
+<Page
+	title="Writing"
+	description="Articles and essays on AI infrastructure, inference, distributed systems, and philosophy."
+>
+	<p class="eyebrow">The publication</p><h1>Writing</h1><p class="lede">
+		Working through systems from the inside out. Explanations, engineering
+		accounts, and questions that need more than a quick answer.
+	</p>
+	<PublicationSearch
+		count={entries.length}
+		categories={categories}
+		tags={tags}
+		series={Object.entries(SERIES).map(([id, s]) => ({ id, title: s.title }))}
+	/>
+	<div data-initial-results>
+		<ul class="content-list">
+			{entries.map((entry) => <ArticleRow entry={entry} />)}
+		</ul>
+		<section class="series-overview">
+			<h2>Read as a series</h2>{
+				Object.entries(SERIES).map(([id, s]) => (
+					<p>
+						<>
+							<a href={`/series/${id}/`}>{s.title}</a>
+							<br />
+							<span class="meta">{s.description}</span>
+						</>
+					</p>
+				))
+			}
+		</section>
+	</div>
+</Page>

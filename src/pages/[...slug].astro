@@ -14,9 +14,14 @@ export async function getStaticPaths() {
 type Props = CollectionEntry<"pages">;
 
 const page = Astro.props;
-const { Content } = await render(page);
+const { Content, headings } = await render(page);
 ---
 
-<Layout {...page.data} slug={page.id} workerUrl={WORKER_URL}>
+<Layout
+	{...page.data}
+	headings={headings}
+	slug={page.id}
+	workerUrl={WORKER_URL}
+>
 	<Content />
 </Layout>

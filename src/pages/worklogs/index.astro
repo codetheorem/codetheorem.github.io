@@ -1,0 +1,58 @@
+---
+import Page from "../../layouts/Page.astro";
+import { getCollection } from "astro:content";
+import { shortDate, readingTime } from "../../utils/publication";
+import { getWeeklyHref, formatWeeklyTitle } from "../../utils/weekly";
+const notes = (await getCollection("worklogs", (p) => !p.data.draft)).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+const weekly = (await getCollection("weekly", (p) => !p.data.draft)).sort(
+	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+---
+
+<Page
+	title="Worklogs"
+	description="Experiments, engineering progress, decisions, and the weekly learning archive."
+	><p class="eyebrow">The working notebook</p><h1>Worklogs</h1><p class="lede">
+		Notes from experiments and changes in progress. What changed, why it
+		changed, and what still needs checking.
+	</p>
+	<ul class="content-list">
+		{
+			notes.map((n) => (
+				<li>
+					<>
+						<p class="meta">
+							{shortDate(n.data.pubDate)} · {readingTime(n.body)} min read
+						</p>
+						<h2>
+							<a href={`/worklogs/${n.id}/`}>{n.data.title}</a>
+						</h2>
+						<p>{n.data.description}</p>
+					</>
+				</li>
+			))
+		}
+	</ul>
+	<h2>Weekly archive</h2><p class="meta">
+		The original weekly URLs remain available.
+	</p><ul class="content-list">
+		{
+			weekly.map((n) => (
+				<li>
+					<>
+						<h3>
+							<a href={getWeeklyHref(n.data)}>{formatWeeklyTitle(n.data)}</a>
+						</h3>
+						<p>{n.data.description}</p>
+						<span class="meta">{n.data.dateRange}</span>
+					</>
+				</li>
+			))
+		}
+	</ul>
+	<p style="margin-top:2rem">
+		<a href="/worklogs/rss.xml">Subscribe to worklogs</a>
+	</p>
+</Page>

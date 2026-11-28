@@ -1,43 +1,43 @@
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Space+Mono:wght@400;700&display=swap");
-
 :root {
 	color-scheme: light;
-	--font-family-base: "Bricolage Grotesque", system-ui, sans-serif;
-	--font-family-heading: "Bricolage Grotesque", system-ui, sans-serif;
-	--font-family-code: "Space Mono", ui-monospace, monospace;
+	--font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	--font-family-heading: Georgia, "Times New Roman", serif;
+	--font-family-code: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+	--font-family-prose: Georgia, "Times New Roman", serif;
 	--font-weight-light: 400;
 	--font-weight-regular: 400;
 	--font-weight-medium: 500;
 	--font-weight-semibold: 600;
-	--font-weight-bold: 800;
-	--text-color: #1d1b33;
-	--text-color-light: #514c66;
-	--text-color-muted: #5b5670;
-	--bg-color: #f2eadb;
-	--bg-color-rgb: 242, 234, 219;
-	--surface-color: #fbf6ec;
-	--accent-blue: #0078bf;
-	--accent-pink: #ff48b0;
-	--accent-yellow: #ffe14d;
-	--accent-purple: #0078bf;
-	--gray-light: 211, 201, 183;
-	--purple-light: 232, 223, 205;
-	--header-overlay-alpha: 0.97;
+	--font-weight-bold: 700;
+	--text-color: #252b27;
+	--text-color-light: #4b514b;
+	--text-color-muted: #66695f;
+	--bg-color: #f6f3ec;
+	--bg-color-rgb: 246, 243, 236;
+	--surface-color: #efebe2;
+	--border-color: #d6d1c6;
+	--accent-blue: #34594c;
+	--accent-pink: #934d36;
+	--accent-yellow: #e4ddbd;
+	--accent-purple: #34594c;
+	--gray-light: 214, 209, 198;
+	--purple-light: 232, 229, 219;
+	--header-overlay-alpha: 1;
 	--header-backdrop-blur: 0px;
 }
-
 [data-theme="dark"] {
 	color-scheme: dark;
-	--text-color: #f2eadb;
-	--text-color-light: #d4cbdc;
-	--text-color-muted: #b8afc4;
-	--bg-color: #1d1b33;
-	--bg-color-rgb: 29, 27, 51;
-	--surface-color: #28253f;
-	--accent-blue: #6fc7fa;
-	--accent-pink: #ff73c2;
-	--accent-yellow: #ffe14d;
-	--accent-purple: #6fc7fa;
-	--gray-light: 74, 68, 92;
-	--purple-light: 53, 47, 73;
+	--text-color: #e8e5db;
+	--text-color-light: #c2c5b9;
+	--text-color-muted: #aaafa2;
+	--bg-color: #191d1b;
+	--bg-color-rgb: 25, 29, 27;
+	--surface-color: #232925;
+	--border-color: #40483f;
+	--accent-blue: #adc8b3;
+	--accent-pink: #e0ad8d;
+	--accent-yellow: #514b34;
+	--accent-purple: #adc8b3;
+	--gray-light: 64, 72, 63;
+	--purple-light: 43, 51, 45;
 }

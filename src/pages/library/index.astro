@@ -1,0 +1,53 @@
+---
+import Page from "../../layouts/Page.astro";
+import PublicationSearch from "../../components/PublicationSearch.astro";
+import { getCollection } from "astro:content";
+const entries = await getCollection("library");
+---
+
+<Page
+	title="Reading library"
+	description="An annotated reading desk for systems papers, engineering blogs, books, and technical references."
+	><p class="eyebrow">Sources &amp; questions</p><h1>Reading library</h1><p
+		class="lede"
+	>
+		A curated desk of papers, engineering blogs, and references. Each entry
+		records why a source belongs here and a question to take into it; inclusion
+		is not a claim of completed reading.
+	</p>
+	<PublicationSearch
+		scope="library"
+		categories={[...new Set(entries.map((e) => e.data.kind))]}
+		tags={[...new Set(entries.flatMap((e) => e.data.tags))].sort()}
+		count={entries.length}
+	/>
+	<div data-initial-results>
+		<ul class="content-list">
+			{
+				entries.map((e) => (
+					<li>
+						<>
+							<p class="meta">
+								{e.data.kind} · {e.data.author}
+							</p>
+							<h2>
+								<a href={`/library/${e.id}/`}>{e.data.title}</a>
+							</h2>
+							<p>{e.data.description}</p>
+							<div class="tags">
+								{e.data.tags.map((t) => (
+									<a
+										href={`/library/?tag=${encodeURIComponent(t)}`}
+										class="tag"
+									>
+										{t}
+									</a>
+								))}
+							</div>
+						</>
+					</li>
+				))
+			}
+		</ul>
+	</div>
+</Page>

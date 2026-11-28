@@ -1,0 +1,40 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { SITE_TITLE } from "../consts";
+interface Props {
+	title: string;
+	description: string;
+	wide?: boolean;
+}
+const { title, description, wide = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head
+		><BaseHead
+			title={`${title} | ${SITE_TITLE}`}
+			description={description}
+		/></head
+	>
+	<body
+		><Header /><main
+			id="main-content"
+			tabindex="-1"
+			class:list={["publication-page", { wide }]}
+		>
+			<slot />
+		</main><Footer /></body>
+</html>
+<style>
+	.wide {
+		width: min(100% - 3rem, 1080px);
+	}
+	@media (max-width: 600px) {
+		.wide {
+			width: calc(100% - 2.5rem);
+		}
+	}
+</style>

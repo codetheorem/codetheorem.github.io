@@ -1,13 +1,10 @@
-export const SITE_TITLE = "codetheorem.dev";
+export const SITE_TITLE = "Hrishikesh Agarwal";
 export const SITE_DESCRIPTION =
-	"a site for my genai/agentic systems worklogs and nonsensical thoughts";
-
-export const BLOG_BASE_PAGE_DESCRIPTION = "my worklogs and blog dumps";
-
+	"AI infrastructure and systems engineering. Notes on LLM inference, distributed systems, agents, database internals, and philosophy.";
+export const BLOG_BASE_PAGE_DESCRIPTION =
+	"Engineering articles, research notes, and essays by Hrishikesh Agarwal.";
 export const PHILOSOPHY_BASE_PAGE_DESCRIPTION =
-	"essays and thoughts on philosophy";
-
+	"Essays on explanation, knowledge, history, and the limits of technical understanding.";
 export const WEEKLY_BASE_PAGE_DESCRIPTION =
-	"a running log of what i learn each week";
-
+	"Experiments, engineering decisions, and notes from work in progress.";
 export const WORKER_URL = import.meta.env.PUBLIC_WORKER_URL ?? "";

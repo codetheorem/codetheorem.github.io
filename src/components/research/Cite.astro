@@ -24,12 +24,18 @@ interface Props {
 const { id, authors, year, narrative = false } = Astro.props;
 ---
 
-{narrative ? (
-	<span class="cite cite-narrative">
-		<a href={`#ref-${id}`}>{authors}</a> ({year})
-	</span>
-) : (
-	<span class="cite">
-		(<a href={`#ref-${id}`}>{authors}, {year}</a>)
-	</span>
-)}
+{
+	narrative ? (
+		<span class="cite cite-narrative">
+			<a href={`#ref-${id}`}>{authors}</a> ({year})
+		</span>
+	) : (
+		<span class="cite">
+			(
+			<a href={`#ref-${id}`}>
+				{authors}, {year}
+			</a>
+			)
+		</span>
+	)
+}

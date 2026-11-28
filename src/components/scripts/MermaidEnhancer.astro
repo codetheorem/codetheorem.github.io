@@ -1,0 +1,79 @@
+<script>
+	const blocks = document.querySelectorAll<HTMLPreElement>(
+		'pre[data-language="mermaid"]',
+	);
+	let renderer: Promise<typeof import("mermaid")> | undefined;
+	blocks.forEach((pre, index) => {
+		const code = pre.textContent ?? "";
+		const section = document.createElement("section");
+		section.className = "mermaid-block";
+		const button = document.createElement("button");
+		button.textContent = "Render diagram";
+		button.type = "button";
+		const status = document.createElement("span");
+		status.setAttribute("role", "status");
+		status.className = "mermaid-status";
+		const output = document.createElement("div");
+		output.className = "mermaid-output";
+		output.tabIndex = 0;
+		output.setAttribute("role", "region");
+		output.setAttribute("aria-label", "Rendered technical diagram");
+		output.hidden = true;
+		pre.before(section);
+		section.append(button, status, output, pre);
+		button.addEventListener("click", async () => {
+			button.disabled = true;
+			status.textContent = "Rendering…";
+			try {
+				renderer ??= import("mermaid");
+				const { default: mermaid } = await renderer;
+				mermaid.initialize({
+					startOnLoad: false,
+					securityLevel: "strict",
+					theme:
+						document.documentElement.dataset.theme === "dark"
+							? "dark"
+							: "neutral",
+					fontFamily: "system-ui, sans-serif",
+				});
+				const result = await mermaid.render(`technical-diagram-${index}`, code);
+				output.innerHTML = result.svg;
+				output.hidden = false;
+				status.textContent = "Diagram rendered. Source remains below.";
+				button.textContent = "Refresh diagram";
+			} catch {
+				status.textContent =
+					"Unable to render this diagram. The source is available below.";
+			} finally {
+				button.disabled = false;
+			}
+		});
+	});
+</script>
+<style is:global>
+	.mermaid-block {
+		margin: 2rem 0;
+		font-family: var(--font-family-base);
+	}
+	.mermaid-block > button {
+		background: var(--surface-color);
+		border: 1px solid var(--border-color);
+		padding: 0.5rem 0.8rem;
+		font-size: 0.85rem;
+	}
+	.mermaid-status {
+		display: block;
+		font-size: 0.8rem;
+		color: var(--text-color-muted);
+		margin: 0.5rem 0;
+	}
+	.mermaid-output {
+		overflow-x: auto;
+		padding: 1rem;
+		border: 1px solid var(--border-color);
+	}
+	.mermaid-output svg {
+		min-width: 500px;
+		max-width: none;
+	}
+</style>

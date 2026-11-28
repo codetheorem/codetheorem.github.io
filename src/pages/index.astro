@@ -1,158 +1,119 @@
 ---
+import Page from "../layouts/Page.astro";
+import ArticleRow from "../components/ArticleRow.astro";
 import { getCollection } from "astro:content";
-import BaseHead from "../components/BaseHead.astro";
-import Header from "../components/Header.astro";
-import Footer from "../components/Footer.astro";
-import DateMeta from "../components/DateMeta.astro";
-import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
+import { getWriting, readingTime, writingHref } from "../utils/publication";
 import "../styles/pages/home.css";
-
-const posts = (await getCollection("blog"))
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-	.slice(0, 3);
+const writing = await getWriting();
+const feature = writing.find((p) => p.data.featured)!;
+const projects = (await getCollection("projects")).sort(
+	(a, b) => a.data.order - b.data.order,
+);
+const latest = writing.filter((p) => p.id !== feature.id).slice(0, 3);
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-	</head>
-	<body>
-		<Header />
-		<main class="home-page">
-			<section class="home-hero" aria-labelledby="intro-title">
-				<p class="paper-label">Software engineer · Bengaluru, India</p>
-				<h1 id="intro-title">
-					Hi, I'm Hrishikesh.<br />I build <span class="print-blue"
-						>AI systems</span
-					><br />that <em>do the work.</em>
-				</h1>
-				<p class="hero-intro">
-					I build agents that diagnose faults, find the right information, and
-					carry out tasks. Most of my work sits between <strong
-						>language models and the software they need to use.</strong>
-				</p>
-				<div class="hero-links">
-					<a class="paper-button primary" href="/blog">Read my writing</a>
-					<a class="paper-button" href="/about">A bit about me</a>
-				</div>
-			</section>
-
-			<div class="tools-strip" aria-label="Tools I work with">
-				<span>LangGraph</span><span>FastAPI</span><span>RAG</span><span
-					>AWS + Azure</span
-				>
-			</div>
-
-			<section class="home-section" aria-labelledby="work-title">
-				<p class="section-kicker">What I work on</p>
-				<h2 id="work-title">From a prompt<br />to a working system.</h2>
-				<div class="work-grid">
-					<article class="work-card">
-						<p class="card-label">Agents + orchestration</p>
-						<h3>Giving agents<br />a job to finish.</h3>
-						<p>
-							Multi-agent workflows for predictive maintenance, conversational
-							commerce, and cloud cost governance. Deciding which agent does
-							what, how they share context, and when a person needs to step in.
-						</p>
-						<p class="card-note">LangGraph · Tool use · Human review</p>
-					</article>
-					<article class="work-card">
-						<p class="card-label">Retrieval + backend</p>
-						<h3>Getting the right<br />context into place.</h3>
-						<p>
-							RAG pipelines, retrieval tools, and the APIs behind them.
-							Connecting models to documents and services, then making those
-							connections work under production constraints.
-						</p>
-						<p class="card-note">RAG · FastAPI · AWS + Azure</p>
-					</article>
-				</div>
-			</section>
-
-			<section
-				class="home-section writing-section"
-				aria-labelledby="writing-title"
+<Page
+	title="AI infrastructure & systems"
+	description="Hrishikesh Agarwal's engineering publication: LLM infrastructure, inference, distributed systems, databases, and philosophy."
+	wide
+>
+	<section class="intro" aria-labelledby="intro-title">
+		<div>
+			<p class="eyebrow">AI infrastructure &amp; systems</p><h1
+				id="intro-title"
 			>
-				<div class="section-heading">
-					<div>
-						<p class="section-kicker">Notes from the work</p><h2
-							id="writing-title"
-						>
-							Thinking in public.
-						</h2>
-					</div>
-					<a class="section-link" href="/blog">All writing</a>
-				</div>
-				<ul class="writing-list">
-					{
-						posts.map((post) => (
-							<li>
-								<div>
-									<>
-										<a href={`/blog/${post.id}/`}>{post.data.title}</a>
-										<p>{post.data.description}</p>
-									</>
-								</div>
-								<DateMeta date={post.data.pubDate} as="span" />
-							</li>
-						))
-					}
-				</ul>
-			</section>
-
-			<section class="home-section about-note" aria-labelledby="about-title">
-				<div>
-					<p class="section-kicker">A little context</p><h2 id="about-title">
-						The path here.
-					</h2>
-				</div>
-				<div>
-					<p>
-						I studied computer science at SMVDU, contributed through Google
-						Summer of Code, and moved from general software engineering into
-						GenAI. At Tata Elxsi, I built tools for test generation, document
-						retrieval, and cloud governance. At Sasken, I build agentic systems.
-					</p>
-					<p>
-						I write to work through the details: what a system does, where it
-						breaks, and why one approach holds up better than another. <a
-							href="/about">More about me</a
-						>.
-					</p>
-				</div>
-			</section>
-
-			<section class="contact-section" aria-labelledby="contact-title">
-				<p class="section-kicker">Compare notes</p>
-				<h2 id="contact-title">
-					Let's talk<br /><span class="print-blue">shop.</span>
-				</h2>
-				<p>
-					Working on agents, retrieval, or backend systems? I'd like to hear
-					what you're building and what's proving difficult.
-				</p>
-				<div class="hero-links">
-					<a
-						class="paper-button primary"
-						href="mailto:hrishikeshagarwalv@gmail.com">Email me</a
-					>
-					<a
-						class="paper-button"
-						href="https://linkedin.com/in/hrishikesh-agarwal"
-						target="_blank"
-						rel="noopener noreferrer">LinkedIn</a
-					>
-					<a
-						class="paper-button"
-						href="https://github.com/codetheorem"
-						target="_blank"
-						rel="noopener noreferrer">GitHub</a
-					>
-				</div>
-			</section>
-		</main>
-		<Footer />
-	</body>
-</html>
+				Understanding the systems<br class="desktop-break" /> behind the abstractions.
+			</h1><p class="intro-text">
+				I'm Hrishikesh, a software engineer in Bengaluru. I work on AI
+				infrastructure and agentic systems, and study inference, distributed
+				systems, and database internals.
+			</p><p class="intro-links">
+				<a href="/about/">About my work</a><span aria-hidden="true">/</span><a
+					href="/writing/">Explore the writing</a
+				>
+			</p>
+		</div><aside class="margin-note">
+			<p class="eyebrow">A recurring question</p><p>
+				What does an abstraction cost, and which promises does it actually keep?
+			</p><span>Computation · memory · state · evidence</span>
+		</aside>
+	</section>
+	<section class="feature" aria-labelledby="feature-title">
+		<div class="feature-context">
+			<p class="eyebrow">Featured engineering account</p><p class="meta">
+				Tokenomics<br />Professional project · Internal product
+			</p>
+		</div><div>
+			<h2 id="feature-title">
+				<a href={writingHref(feature)}>{feature.data.title}</a>
+			</h2><p>{feature.data.description}</p><p class="meta">
+				{readingTime(feature.body)} min read · Original diagrams · Public-safe account
+			</p><a href={writingHref(feature)}>Read the article</a>
+		</div>
+	</section>
+	<div class="home-columns">
+		<section aria-labelledby="recent-title">
+			<div class="section-heading">
+				<h2 id="recent-title">Recent writing</h2><a href="/writing/"
+					>All articles</a
+				>
+			</div><ul class="content-list">
+				{latest.map((entry) => <ArticleRow entry={entry} />)}
+			</ul>
+		</section><aside class="interests" aria-labelledby="interests-title">
+			<div class="section-heading">
+				<h2 id="interests-title">Current research interests</h2>
+			</div><dl>
+				<dt>LLM inference</dt><dd>
+					Execution, KV memory, batching, and the cost of generating a token.
+				</dd><dt>Distributed systems</dt><dd>
+					State, coordination, and the behavior of partial failures.
+				</dd><dt>Agentic architectures</dt><dd>
+					Tool use, context, evaluation, and the cost of completing a task.
+				</dd><dt>Database internals</dt><dd>
+					Query execution, storage, transactions, and recovery.
+				</dd><dt>Philosophy &amp; history</dt><dd>
+					Explanation, evidence, and the limits of a useful model.
+				</dd>
+			</dl><a href="/library/">On the reading desk</a>
+		</aside>
+	</div>
+	<section class="home-projects" aria-labelledby="projects-title">
+		<div class="section-heading">
+			<h2 id="projects-title">Projects &amp; directions</h2><a href="/projects/"
+				>Project index</a
+			>
+		</div><ul>
+			{
+				projects.map((p) => (
+					<li>
+						<>
+							<h3>
+								<a href={`/projects/${p.id}/`}>{p.data.title}</a>
+							</h3>
+							<p>{p.data.description}</p>
+							<span class="meta">{p.data.kind}</span>
+						</>
+					</li>
+				))
+			}
+		</ul>
+	</section>
+	<section class="home-bottom">
+		<div>
+			<p class="eyebrow">A longer reading path</p><h2>
+				<a href="/books/llm-inference/">Notes on LLM Inference</a>
+			</h2><p>
+				A working manuscript on execution, memory, and measurement. Three
+				chapters to start with.
+			</p><a href="/books/llm-inference/">Open the manuscript</a>
+		</div><div>
+			<p class="eyebrow">From the notebook</p><h2>
+				<a href="/worklogs/">Work in progress</a>
+			</h2><p>
+				Experiments and engineering decisions, kept separate from finished
+				explanations.
+			</p><a href="/worklogs/">Read the worklogs</a>
+		</div>
+	</section>
+</Page>

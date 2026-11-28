@@ -1,144 +1,58 @@
 ---
-import { Mail, Github, Linkedin, Rss } from "lucide-astro";
-import BrandIcon from "./BrandIcon.astro";
 import { SOCIAL_LINKS } from "../data/social";
-import { formatVersionDate } from "../utils/dates";
-import { SITE_TITLE } from "../consts";
-
-const ICONS = {
-	mail: Mail,
-	github: Github,
-	linkedin: Linkedin,
-	rss: Rss,
-} as const;
-
-const versionStamp = `${SITE_TITLE} v${formatVersionDate(new Date())}`;
 ---
 
-<footer>
-	<div class="footer-content">
-		<p class="copyright"><BrandIcon alt="" size="1.5em" />{versionStamp}</p>
-		<div class="social-links">
-			{
-				SOCIAL_LINKS.map((link) => {
-					const Icon = ICONS[link.icon];
-					const target = link.external ? "_blank" : undefined;
-					const rel = link.external ? "noopener noreferrer" : undefined;
-					return (
-						<a
-							href={link.href}
-							target={target}
-							rel={rel}
-							aria-label={link.label}
-							title={link.label}
-						>
-							<span class="sr-only">{link.label}</span>
-							<Icon aria-hidden="true" class="icon" strokeWidth={1.1} />
-						</a>
-					);
-				})
-			}
-		</div>
+<footer class="site-footer">
+	<div>
+		<a href="/">Hrishikesh Agarwal</a><p>
+			Notes on the systems behind the abstractions.
+		</p>
 	</div>
+	<nav aria-label="Footer navigation">
+		{
+			SOCIAL_LINKS.map((link) => (
+				<a
+					href={link.href}
+					rel={link.external ? "noopener noreferrer" : undefined}
+				>
+					{link.label}
+				</a>
+			))
+		}
+	</nav>
 </footer>
-
 <style>
-	footer {
-		margin-top: auto;
-		padding: 2em 1em;
-		color: var(--text-color-muted);
-	}
-
-	.footer-content {
-		max-width: 1040px;
-		border-top: 1px solid var(--text-color);
-		padding-top: 1.5rem;
-		margin: 0 auto;
+	.site-footer {
+		width: min(100% - 3rem, 1080px);
+		margin: auto auto 0;
+		border-top: 1px solid var(--border-color);
+		padding: 2rem 0 2.5rem;
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 1em;
+		gap: 1.5rem;
+		font-size: 0.8rem;
+		color: var(--text-color-muted);
 	}
-
-	.copyright {
-		margin: 0;
-		font-size: 0.75rem;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4em;
-	}
-
-	.social-links {
-		display: flex;
-		gap: 1em;
-		align-items: center;
-	}
-
-	.social-links a {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--text-color);
+	.site-footer a {
+		color: var(--text-color-light);
 		text-decoration: none;
-		transition: color 0.2s ease;
 	}
-
-	.social-links a:hover {
-		color: var(--accent-purple);
+	.site-footer a:hover {
+		text-decoration: underline;
 	}
-
-	.icon {
-		width: 20px;
-		height: 20px;
+	p {
+		margin: 0.4rem 0 0;
 	}
-
-	@media (max-width: 720px) {
-		footer {
-			margin-top: 2.5em;
-			padding: 1.5em 1em;
-		}
-
-		.copyright {
-			font-size: 0.75rem;
-		}
-
-		.icon {
-			width: 18px;
-			height: 18px;
-		}
+	nav {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: start;
+		gap: 1rem;
 	}
-
-	@media (max-width: 480px) {
-		footer {
-			margin-top: 2em;
-			padding: 1.25em 0.75em;
-		}
-
-		.footer-content {
+	@media (max-width: 600px) {
+		.site-footer {
+			width: calc(100% - 2.5rem);
 			flex-direction: column;
-			text-align: center;
-			gap: 0.75em;
-		}
-
-		.copyright {
-			font-size: 0.75rem;
-		}
-
-		.icon {
-			width: 16px;
-			height: 16px;
-		}
-	}
-
-	@media (max-width: 360px) {
-		.copyright {
-			font-size: 0.75rem;
-		}
-
-		.icon {
-			width: 14px;
-			height: 14px;
 		}
 	}
 </style>

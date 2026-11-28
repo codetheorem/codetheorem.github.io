@@ -1,55 +1,23 @@
 ---
+import Page from "../../layouts/Page.astro";
+import ArticleRow from "../../components/ArticleRow.astro";
 import { getCollection } from "astro:content";
-import BaseHead from "../../components/BaseHead.astro";
-import DateMeta from "../../components/DateMeta.astro";
-import ViewCounter from "../../components/ViewCounter.astro";
-import Header from "../../components/Header.astro";
-import Footer from "../../components/Footer.astro";
-import {
-	BLOG_BASE_PAGE_DESCRIPTION,
-	SITE_TITLE,
-	WORKER_URL,
-} from "../../consts";
-import "../../styles/pages/blog.css";
-
-const posts = (await getCollection("blog")).sort(
-	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+const entries = (await getCollection("blog", (p) => !p.data.draft)).sort(
+	(a, b) =>
+		b.data.pubDate.valueOf() - a.data.pubDate.valueOf() ||
+		Number(b.data.featured) - Number(a.data.featured),
 );
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead
-			title={`Blog | ${SITE_TITLE}`}
-			description={BLOG_BASE_PAGE_DESCRIPTION}
-		/>
-	</head>
-	<body>
-		<Header />
-		<main class="blog-page">
-			<h1>Blog</h1>
-			<ul>
-				{
-					posts.map((post) => (
-						<li>
-							<a href={`/blog/${post.id}/`}>
-								<h2 class="post-title">{post.data.title}</h2>
-							</a>
-							<p class="post-description">{post.data.description}</p>
-							<div class="post-meta">
-								<DateMeta date={post.data.pubDate} as="span" />
-								<ViewCounter
-									slug={post.id}
-									workerUrl={WORKER_URL}
-									readOnly={true}
-								/>
-							</div>
-						</li>
-					))
-				}
-			</ul>
-		</main>
-		<Footer />
-	</body>
-</html>
+<Page
+	title="Engineering archive"
+	description="The original engineering article archive. All existing article addresses remain available."
+	><p class="eyebrow">Writing / Engineering</p><h1>Engineering archive</h1><p
+		class="lede"
+	>
+		The original blog archive. Browse <a href="/writing/">all writing</a> for search,
+		topics, and essays.
+	</p><ul class="content-list">
+		{entries.map((entry) => <ArticleRow entry={entry} />)}
+	</ul></Page
+>

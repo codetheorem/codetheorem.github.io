@@ -2,67 +2,65 @@
 import { Sun, Moon } from "lucide-astro";
 ---
 
-<button class="theme-toggle" aria-label="Toggle theme">
-	<Sun class="sun-icon icon" size={22} />
-	<Moon class="moon-icon icon" size={22} />
-</button>
-
+<button
+	class="theme-toggle"
+	type="button"
+	aria-label="Switch to dark theme"
+	aria-pressed="false"
+	><Sun class="sun-icon" size={19} aria-hidden="true" /><Moon
+		class="moon-icon"
+		size={19}
+		aria-hidden="true"
+	/></button
+>
 <style>
 	button {
-		font: inherit;
+		display: grid;
+		place-items: center;
 		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 0;
+		border: 1px solid transparent;
 		color: var(--text-color);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		position: relative;
-		transition: color 0.2s ease;
-		margin: 0;
-		width: 2.2em;
-		height: 2.2em;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		border-radius: 3px;
 	}
-
 	button:hover {
-		color: var(--accent-purple);
+		border-color: var(--border-color);
 	}
-
-	.icon {
-		width: 1.375em;
-		height: 1.375em;
-	}
-
-	.sun-icon,
-	.moon-icon {
-		position: absolute;
-		left: 50%;
-		top: 50%;
-		transform: translate(-50%, -50%);
-	}
-
-	/* Light mode: show moon, hide sun */
-	:global([data-theme="light"]) .sun-icon {
+	.sun-icon {
 		display: none;
 	}
-
-	/* Dark mode: show sun, hide moon */
+	:global([data-theme="dark"]) .sun-icon {
+		display: block;
+	}
 	:global([data-theme="dark"]) .moon-icon {
 		display: none;
 	}
 </style>
-
 <script>
-	const themeToggles = document.querySelectorAll(".theme-toggle");
-
-	themeToggles.forEach((themeToggle) => {
-		themeToggle.addEventListener("click", () => {
-			const currentTheme = document.documentElement.getAttribute("data-theme");
-			const newTheme = currentTheme === "dark" ? "light" : "dark";
-
-			document.documentElement.setAttribute("data-theme", newTheme);
-			localStorage.setItem("theme", newTheme);
+	for (const button of document.querySelectorAll<HTMLButtonElement>(
+		".theme-toggle",
+	)) {
+		const sync = () => {
+			const dark = document.documentElement.dataset.theme === "dark";
+			button.setAttribute("aria-pressed", String(dark));
+			button.setAttribute(
+				"aria-label",
+				dark ? "Switch to light theme" : "Switch to dark theme",
+			);
+		};
+		sync();
+		button.addEventListener("click", () => {
+			const theme =
+				document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+			document.documentElement.dataset.theme = theme;
+			try {
+				localStorage.setItem("theme", theme);
+			} catch {
+				/* Theme remains usable without storage. */
+			}
+			sync();
 		});
-	});
+	}
 </script>

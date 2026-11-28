@@ -11,22 +11,22 @@ const output = path.join(root, "blog/tokenomics/diagrams");
 const publicOutput = path.join(root, "public/images/tokenomics");
 fs.mkdirSync(output, { recursive: true });
 fs.mkdirSync(publicOutput, { recursive: true });
-const ink = "#1d1b33",
-	blue = "#0078bf",
-	pink = "#ff48b0";
+const ink = "#252b27",
+	blue = "#34594c",
+	pink = "#934d36";
 const escape = (s) =>
 	s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
 function text(x, y, lines, size = 19, color = ink, weight = 400) {
 	return `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-weight="${weight}">${lines.map((line, i) => `<tspan x="${x}" dy="${i ? 26 : 0}">${escape(line)}</tspan>`).join("")}</text>`;
 }
 function box(x, y, w, h, title, lines = [], accent = blue) {
-	return `<rect x="${x + 4}" y="${y + 4}" width="${w}" height="${h}" fill="${accent}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fbf6ec" stroke="${ink}" stroke-width="2"/>${text(x + 16, y + 30, [title], 20, ink, 700)}${text(x + 16, y + 60, lines, 17)}`;
+	return `<rect x="${x + 4}" y="${y + 4}" width="${w}" height="${h}" fill="${accent}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#efebe2" stroke="${ink}" stroke-width="2"/>${text(x + 16, y + 30, [title], 20, ink, 700)}${text(x + 16, y + 60, lines, 17)}`;
 }
 function link(x1, y1, x2, y2) {
 	return `<path d="M${x1},${y1} L${x2},${y2}" fill="none" stroke="${blue}" stroke-width="2.5" marker-end="url(#arrow)"/>`;
 }
 function save(slug, title, subtitle, content, mermaid) {
-	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-labelledby="title desc"><title id="title">${escape(title)}</title><desc id="desc">${escape(subtitle)}</desc><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="${blue}" stroke-width="1.5"/></marker></defs><rect width="800" height="500" fill="#f2eadb"/><g font-family="Arial, Helvetica, sans-serif">${text(30, 42, [title], 27, ink, 700)}${text(30, 73, [subtitle], 16, "#5b5670")}${content}${text(30, 478, ["CONCEPTUAL · ORIGINAL ILLUSTRATION · NOT AN INTERNAL SYSTEM DIAGRAM"], 11, "#5b5670")}</g></svg>\n`;
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-labelledby="title desc"><title id="title">${escape(title)}</title><desc id="desc">${escape(subtitle)}</desc><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="${blue}" stroke-width="1.5"/></marker></defs><rect width="800" height="500" fill="#f6f3ec"/><g font-family="Arial, Helvetica, sans-serif">${text(30, 42, [title], 27, ink, 700)}${text(30, 73, [subtitle], 16, "#66695f")}${content}${text(30, 478, ["CONCEPTUAL · ORIGINAL ILLUSTRATION · NOT AN INTERNAL SYSTEM DIAGRAM"], 11, "#66695f")}</g></svg>\n`;
 	fs.writeFileSync(path.join(output, `${slug}.svg`), svg);
 	fs.writeFileSync(path.join(publicOutput, `${slug}.svg`), svg);
 	fs.writeFileSync(

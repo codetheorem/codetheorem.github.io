@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-/* eslint-env node */
-/* global console */
 
 /**
  * Generates a random DEDUP_SALT value, stores it in worker/.dev.vars for local

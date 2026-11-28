@@ -22,28 +22,32 @@ const {
 const workerApiKey = import.meta.env.PUBLIC_VIEW_COUNTER_API_KEY ?? "";
 ---
 
-{trackOnly ? (
-	<span
-		class="view-tracker"
-		data-slug={slug}
-		data-worker-url={workerUrl}
-		data-worker-api-key={workerApiKey}
-		style="display:none"
-	/>
-) : (
-	<div
-		class="view-counter"
-		data-slug={slug}
-		data-worker-url={workerUrl}
-		data-read-only={readOnly.toString()}
-		data-worker-api-key={workerApiKey}
-	>
-		<span class="view-separator" aria-hidden="true">•</span>
-		<span class="view-count" aria-label="View count">
-			<span class="view-count-number">--</span>
-		</span>
-	</div>
-)}
+{
+	trackOnly ? (
+		<span
+			class="view-tracker"
+			data-slug={slug}
+			data-worker-url={workerUrl}
+			data-worker-api-key={workerApiKey}
+			style="display:none"
+		/>
+	) : (
+		<div
+			class="view-counter"
+			data-slug={slug}
+			data-worker-url={workerUrl}
+			data-read-only={readOnly.toString()}
+			data-worker-api-key={workerApiKey}
+		>
+			<span class="view-separator" aria-hidden="true">
+				•
+			</span>
+			<span class="view-count" aria-label="View count">
+				<span class="view-count-number">--</span>
+			</span>
+		</div>
+	)
+}
 
 <script>
 	const isLocalEnvironment = () => {
@@ -212,9 +216,13 @@ const workerApiKey = import.meta.env.PUBLIC_VIEW_COUNTER_API_KEY ?? "";
 						localStorage.setItem(viewKey, now.toString());
 						localStorage.removeItem(failureKey);
 					} else {
-						const shouldWarn = !Number.isFinite(lastFailed) || now - lastFailed > failureCooldown;
+						const shouldWarn =
+							!Number.isFinite(lastFailed) ||
+							now - lastFailed > failureCooldown;
 						if (shouldWarn) {
-							console.warn(`View tracking failed for ${slug}: ${response.status}`);
+							console.warn(
+								`View tracking failed for ${slug}: ${response.status}`,
+							);
 							localStorage.setItem(failureKey, now.toString());
 						}
 					}

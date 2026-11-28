@@ -1,0 +1,35 @@
+---
+import Page from "../../layouts/Page.astro";
+import { getCollection } from "astro:content";
+const books = await getCollection("books");
+const chapters = await getCollection("chapters", (p) => !p.data.draft);
+---
+
+<Page
+	title="Books"
+	description="Working manuscripts and long-form educational notes on systems engineering."
+	><p class="eyebrow">Long-form resources</p><h1>
+		Books &amp; working notes
+	</h1><p class="lede">
+		Some subjects need a sequence of explanations. These manuscripts build a
+		model of a system one chapter at a time.
+	</p><ul class="content-list">
+		{
+			books.map((b) => (
+				<li>
+					<>
+						<p class="meta">
+							{b.data.status} ·{" "}
+							{chapters.filter((c) => c.data.book === b.id).length} chapters
+							available
+						</p>
+						<h2>
+							<a href={`/books/${b.id}/`}>{b.data.title}</a>
+						</h2>
+						<p>{b.data.description}</p>
+					</>
+				</li>
+			))
+		}
+	</ul></Page
+>

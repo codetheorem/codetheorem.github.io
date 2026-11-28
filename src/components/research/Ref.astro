@@ -10,7 +10,7 @@
  *      title="Attention is all you need"
  *      url="https://arxiv.org/abs/1706.03762" />
  * ```
- * 
+ *
  * For arXiv preprints:
  * ```
  * <Ref id="ba2016"
@@ -32,24 +32,33 @@ interface Props {
 	arxiv?: string;
 }
 
-const { id, authors, year, title, venue, volume, pages, url, arxiv } = Astro.props;
+const { id, authors, year, title, venue, volume, pages, url, arxiv } =
+	Astro.props;
 ---
 
 <div class="reference" id={`ref-${id}`}>
 	<span class="ref-authors">{authors}</span>
 	<span class="ref-year">({year}).</span>
-	{url ? (
-		<a href={url} class="ref-title" target="_blank" rel="noopener">{title}</a>
-	) : (
-		<span class="ref-title">{title}</span>
-	)}.
-	{arxiv ? (
-		<span class="ref-venue">
-			<em>arXiv preprint arXiv:{arxiv}</em>
-		</span>
-	) : venue ? (
-		<span class="ref-venue">
-			<em>{venue}</em>{volume && `, ${volume}`}{pages && `, ${pages}`}.
-		</span>
-	) : null}
+	{
+		url ? (
+			<a href={url} class="ref-title" target="_blank" rel="noopener">
+				{title}
+			</a>
+		) : (
+			<span class="ref-title">{title}</span>
+		)
+	}.
+	{
+		arxiv ? (
+			<span class="ref-venue">
+				<em>arXiv preprint arXiv:{arxiv}</em>
+			</span>
+		) : venue ? (
+			<span class="ref-venue">
+				<em>{venue}</em>
+				{volume && `, ${volume}`}
+				{pages && `, ${pages}`}.
+			</span>
+		) : null
+	}
 </div>

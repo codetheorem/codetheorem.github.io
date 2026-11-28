@@ -1,21 +1,35 @@
 ---
-import { type CollectionEntry, getCollection, render } from "astro:content";
+import { getCollection, render, type CollectionEntry } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
+import ArticleConnections from "../../components/ArticleConnections.astro";
+import { readingTime } from "../../utils/publication";
 import { WORKER_URL } from "../../consts";
-
 export async function getStaticPaths() {
-	const posts = await getCollection("blog");
-	return posts.map((post) => ({
+	return (await getCollection("blog", (p) => !p.data.draft)).map((post) => ({
 		params: { slug: post.id },
-		props: post,
+		props: { post },
 	}));
 }
-type Props = CollectionEntry<"blog">;
-
-const post = Astro.props;
-const { Content } = await render(post);
+interface Props {
+	post: CollectionEntry<"blog">;
+}
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
 ---
 
-<Layout {...post.data} slug={post.id} workerUrl={WORKER_URL}>
-	<Content />
+<Layout
+	{...post.data}
+	headings={headings}
+	minutes={readingTime(post.body)}
+	slug={post.id}
+	workerUrl={WORKER_URL}
+	section={{ href: "/writing/", label: "Writing" }}
+>
+	<Content /><ArticleConnections
+		slot="after"
+		id={post.id}
+		tags={post.data.tags}
+		series={post.data.series}
+		collection="blog"
+	/>
 </Layout>

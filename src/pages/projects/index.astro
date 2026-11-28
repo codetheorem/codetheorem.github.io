@@ -1,0 +1,40 @@
+---
+import Page from "../../layouts/Page.astro";
+import { getCollection } from "astro:content";
+const projects = (await getCollection("projects")).sort(
+	(a, b) => a.data.order - b.data.order,
+);
+---
+
+<Page
+	title="Projects"
+	description="Professional engineering, independent prototypes, and research directions in inference, databases, and creative infrastructure."
+	><p class="eyebrow">Engineering practice</p><h1>
+		Projects &amp; research directions
+	</h1><p class="lede">
+		A map of professional work, independent experiments, and systems I want to
+		understand by building. Each page states what exists and what is still a
+		plan.
+	</p><ul class="content-list">
+		{
+			projects.map((p) => (
+				<li>
+					<>
+						<p class="meta">
+							{p.data.kind} · {p.data.status}
+						</p>
+						<h2>
+							<a href={`/projects/${p.id}/`}>{p.data.title}</a>
+						</h2>
+						<p>{p.data.description}</p>
+						<div class="tags">
+							{p.data.topics.map((t) => (
+								<span class="tag">{t}</span>
+							))}
+						</div>
+					</>
+				</li>
+			))
+		}
+	</ul></Page
+>

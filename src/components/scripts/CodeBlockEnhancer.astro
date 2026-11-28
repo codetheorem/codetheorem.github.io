@@ -38,6 +38,7 @@
 			button.className = "wrap-button";
 			button.type = "button";
 			button.setAttribute("aria-label", WRAP_LABEL);
+			button.setAttribute("aria-pressed", "false");
 			button.innerHTML = WRAP_ICON;
 			return button;
 		};
@@ -66,6 +67,8 @@
 		const enhance = () => {
 			document.querySelectorAll("pre.astro-code").forEach((element) => {
 				const pre = element as HTMLPreElement;
+				pre.tabIndex = 0;
+				pre.setAttribute("aria-label", "Code example");
 				if (pre.dataset.enhanced === "true" || !pre.parentNode) return;
 				pre.dataset.enhanced = "true";
 
@@ -100,6 +103,10 @@
 				wrapButton.addEventListener("click", () => {
 					pre.classList.toggle("wrapped");
 					wrapButton.classList.toggle("active");
+					wrapButton.setAttribute(
+						"aria-pressed",
+						String(pre.classList.contains("wrapped")),
+					);
 				});
 
 				copyButton.addEventListener("click", async () => {

@@ -1,0 +1,296 @@
+---
+interface Props {
+	scope?: string;
+	categories?: string[];
+	tags?: string[];
+	series?: { id: string; title: string }[];
+	count: number;
+}
+const {
+	scope = "writing",
+	categories = [],
+	tags = [],
+	series = [],
+	count,
+} = Astro.props;
+---
+
+<section
+	id="search"
+	class="publication-search"
+	data-publication-search
+	data-scope={scope}
+>
+	<form role="search" aria-label="Publication search" class="search-form">
+		<label class="search-label" for="publication-query"
+			>Search the full text</label
+		>
+		<div class="query-row">
+			<input
+				id="publication-query"
+				name="q"
+				type="search"
+				placeholder="A concept, a question, a phrase…"
+				autocomplete="off"
+			/><button type="submit">Search</button>
+		</div>
+		<div class="search-filters">
+			<label
+				>Section<select name="scope"
+					><option value={scope}
+						>{scope === "library" ? "Reading library" : "Writing"}</option
+					><option value="all">Entire publication</option>{
+						["projects", "books", "worklogs"].map((s) => (
+							<option value={s}>
+								{s.charAt(0).toUpperCase() + s.slice(1)}
+							</option>
+						))
+					}</select
+				></label
+			>
+			{
+				categories.length > 0 && (
+					<label>
+						Category
+						<select name="category">
+							<option value="">All categories</option>
+							{categories.map((c) => (
+								<option value={c}>{c}</option>
+							))}
+						</select>
+					</label>
+				)
+			}
+			{
+				tags.length > 0 && (
+					<label>
+						Topic
+						<select name="tag">
+							<option value="">All topics</option>
+							{tags.map((t) => (
+								<option value={t}>{t}</option>
+							))}
+						</select>
+					</label>
+				)
+			}
+			{
+				series.length > 0 && (
+					<label>
+						Series
+						<select name="series">
+							<option value="">All series</option>
+							{series.map((s) => (
+								<option value={s.id}>{s.title}</option>
+							))}
+						</select>
+					</label>
+				)
+			}
+		</div>
+		<button type="button" class="clear-search">Clear filters</button>
+	</form>
+	<p class="search-status meta" aria-live="polite" aria-atomic="true">
+		{count} entries. Search includes article bodies and code examples.
+	</p>
+	<noscript
+		><p class="note">
+			Search needs JavaScript. All entries remain available below.
+		</p></noscript
+	>
+	<ul class="search-results content-list" hidden></ul>
+</section>
+<script>
+	import { searchItems, excerpt } from "../utils/search.mjs";
+	type Entry = {
+		title: string;
+		description: string;
+		text: string;
+		href: string;
+		tags: string[];
+		category: string;
+		series?: string;
+		scope: string;
+		date: string;
+	};
+	for (const root of document.querySelectorAll<HTMLElement>(
+		"[data-publication-search]",
+	)) {
+		const form = root.querySelector("form")!;
+		const input = form.querySelector<HTMLInputElement>('input[name="q"]')!;
+		const results = root.querySelector<HTMLUListElement>(".search-results")!;
+		const status = root.querySelector<HTMLElement>(".search-status")!;
+		const initial = document.querySelector<HTMLElement>(
+			"[data-initial-results]",
+		);
+		let entries: Promise<Entry[]> | undefined;
+		let generation = 0;
+		let timer: ReturnType<typeof setTimeout>;
+		const controls = ["scope", "category", "tag", "series"];
+		const fromURL = () => {
+			const params = new URLSearchParams(location.search);
+			input.value = params.get("q") ?? "";
+			for (const name of controls) {
+				const control = form.querySelector<HTMLSelectElement>(
+					`[name="${name}"]`,
+				);
+				if (control) {
+					const value =
+						params.get(name) ??
+						(name === "scope" ? (root.dataset.scope ?? "writing") : "");
+					if ([...control.options].some((o) => o.value === value))
+						control.value = value;
+				}
+			}
+		};
+		async function update(writeURL = true) {
+			const run = ++generation;
+			const data = new FormData(form);
+			const filters = Object.fromEntries(
+				[...data].map(([k, v]) => [k, String(v)]),
+			);
+			const active = Boolean(
+				filters.q?.trim() ||
+				filters.category ||
+				filters.tag ||
+				filters.series ||
+				filters.scope !== root.dataset.scope,
+			);
+			if (writeURL) {
+				const params = new URLSearchParams();
+				for (const [key, value] of Object.entries(filters))
+					if (value && (key !== "scope" || value !== root.dataset.scope))
+						params.set(key, value);
+				history.replaceState(
+					null,
+					"",
+					`${location.pathname}${params.size ? "?" + params : ""}#search`,
+				);
+			}
+			if (!active) {
+				results.hidden = true;
+				if (initial) initial.hidden = false;
+				status.textContent = `${root.dataset.initialCount} entries. Search includes article bodies and code examples.`;
+				return;
+			}
+			status.textContent = "Searching…";
+			try {
+				entries ??= fetch("/search-index.json")
+					.then((r) => {
+						if (!r.ok) throw Error("Index unavailable");
+						return r.json();
+					})
+					.catch((error) => {
+						entries = undefined;
+						throw error;
+					});
+				const all = await entries;
+				if (run !== generation) return;
+				const matched = searchItems(all, filters) as Entry[];
+				results.replaceChildren();
+				for (const entry of matched) {
+					const li = document.createElement("li");
+					const meta = document.createElement("p");
+					meta.className = "meta";
+					meta.textContent = [entry.category, entry.date]
+						.filter(Boolean)
+						.join(" · ");
+					const heading = document.createElement("h3");
+					const a = document.createElement("a");
+					a.href = entry.href;
+					a.textContent = entry.title;
+					heading.append(a);
+					const p = document.createElement("p");
+					p.textContent = filters.q
+						? excerpt(entry.text, filters.q)
+						: entry.description;
+					li.append(meta, heading, p);
+					results.append(li);
+				}
+				results.hidden = false;
+				if (initial) initial.hidden = true;
+				status.textContent = matched.length
+					? `${matched.length} matching ${matched.length === 1 ? "entry" : "entries"}.`
+					: "No entries match. Try fewer words or clear a filter.";
+			} catch {
+				status.textContent =
+					"Search could not load. All entries are available below; try again to retry.";
+				results.hidden = true;
+				if (initial) initial.hidden = false;
+			}
+		}
+		root.dataset.initialCount = status.textContent?.trim().split(" ")[0] ?? "0";
+		form.addEventListener("submit", (event) => {
+			event.preventDefault();
+			clearTimeout(timer);
+			void update();
+		});
+		input.addEventListener("input", () => {
+			clearTimeout(timer);
+			timer = setTimeout(() => void update(), 180);
+		});
+		form
+			.querySelectorAll("select")
+			.forEach((s) => s.addEventListener("change", () => void update()));
+		form.querySelector(".clear-search")?.addEventListener("click", () => {
+			form.reset();
+			void update();
+			input.focus();
+		});
+		window.addEventListener("popstate", () => {
+			fromURL();
+			void update(false);
+		});
+		fromURL();
+		void update(false);
+	}
+</script>
+<style>
+	.publication-search {
+		margin: 2.5rem 0;
+	}
+	.search-label {
+		display: block;
+		font-size: 0.9rem;
+		margin-bottom: 0.5rem;
+	}
+	.query-row {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.query-row button {
+		background: var(--accent-purple);
+		color: var(--bg-color);
+		border: 0;
+		border-radius: 3px;
+		padding: 0.5rem 1rem;
+	}
+	.search-filters {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+		gap: 1rem;
+		margin-top: 1rem;
+	}
+	.search-filters label {
+		font-size: 0.875rem;
+		color: var(--text-color-muted);
+	}
+	select {
+		display: block;
+		width: 100%;
+		margin-top: 0.3rem;
+		font-size: 0.85rem;
+	}
+	.clear-search {
+		background: none;
+		border: 0;
+		padding: 0.5rem 0;
+		margin-top: 0.5rem;
+		color: var(--accent-purple);
+		font-size: 0.82rem;
+		text-decoration: underline;
+	}
+	.search-status {
+		margin-top: 0.5rem;
+	}
+</style>

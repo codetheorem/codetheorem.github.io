@@ -1,4 +1,5 @@
-export const JAPAN_TIME_ZONE = "Asia/Tokyo";
+// Legacy function names are retained for existing weekly routes. Dates use the author’s timezone.
+export const JAPAN_TIME_ZONE = "Asia/Kolkata";
 
 export function formatDateInJapan(
 	date: Date,

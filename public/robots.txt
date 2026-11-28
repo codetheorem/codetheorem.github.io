@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://codetheorem.github.io/sitemap-index.xml

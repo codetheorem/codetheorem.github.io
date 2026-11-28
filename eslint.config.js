@@ -24,6 +24,22 @@ export default [
 	},
 	js.configs.recommended,
 	{
+		files: [
+			"scripts/**/*.mjs",
+			"blog/tokenomics/assets/*.mjs",
+			"src/pages/**/*.{js,ts}",
+		],
+		languageOptions: {
+			globals: {
+				console: "readonly",
+				URL: "readonly",
+				Response: "readonly",
+				process: "readonly",
+				Buffer: "readonly",
+			},
+		},
+	},
+	{
 		files: ["**/*.{ts,tsx}"],
 		languageOptions: {
 			parser: tsParser,

@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-/* eslint-env node */
-/* global console */
 
 /**
  * Generates a VIEW_COUNTER_API_KEY, stores it in worker/.dev.vars for Wrangler

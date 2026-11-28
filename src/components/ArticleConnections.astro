@@ -1,0 +1,72 @@
+---
+import { getWriting, writingHref } from "../utils/publication";
+import { SERIES } from "../data/series";
+interface Props {
+	id: string;
+	tags: string[];
+	series?: string;
+	collection: string;
+}
+const { id, tags, series, collection } = Astro.props;
+const all = await getWriting();
+const parts = series
+	? all
+			.filter((p) => p.data.series === series)
+			.sort((a, b) => (a.data.seriesOrder ?? 0) - (b.data.seriesOrder ?? 0))
+	: [];
+const related = all
+	.filter((p) => !(p.id === id && p.collection === collection))
+	.map((p) => ({
+		p,
+		score:
+			p.data.tags.filter((t) => tags.includes(t)).length +
+			(series && p.data.series === series ? 3 : 0),
+	}))
+	.sort((a, b) => b.score - a.score)
+	.slice(0, 2);
+---
+
+<div class="article-after">
+	{
+		series && SERIES[series] && (
+			<nav class="series-nav" aria-label="Article series">
+				<>
+					<a href={`/series/${series}/`}>{SERIES[series].title}</a>
+					<ol>
+						{parts.map((p) => (
+							<li>
+								<a
+									href={writingHref(p)}
+									aria-current={
+										p.id === id && p.collection === collection
+											? "page"
+											: undefined
+									}
+								>
+									{p.data.title}
+								</a>
+							</li>
+						))}
+					</ol>
+				</>
+			</nav>
+		)
+	}
+	{
+		related.length > 0 && (
+			<section aria-labelledby="related-title">
+				<>
+					<h2 id="related-title">Continue reading</h2>
+					<ul class="content-list">
+						{related.map(({ p }) => (
+							<li>
+								<a href={writingHref(p)}>{p.data.title}</a>
+								<p>{p.data.description}</p>
+							</li>
+						))}
+					</ul>
+				</>
+			</section>
+		)
+	}
+</div>

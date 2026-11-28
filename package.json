@@ -12,7 +12,10 @@
 		"lint": "eslint . --ext .astro,.ts,.tsx,.js,.jsx,.mjs,.cjs && echo '✓ Linting complete: No issues found'",
 		"lint:fix": "eslint . --ext .astro,.ts,.tsx,.js,.jsx,.mjs,.cjs --fix && echo '✓ Linting complete: All issues fixed.'",
 		"format": "prettier --check \"**/*.{astro,css,js,ts,tsx,json}\"",
-		"format:write": "prettier --write --log-level warn \"**/*.{astro,css,js,ts,tsx,json}\" && echo '✓ Formatting complete: All files formatted successfully!'"
+		"format:write": "prettier --write --log-level warn \"**/*.{astro,css,js,ts,tsx,json}\" && echo '✓ Formatting complete: All files formatted successfully!'",
+		"test": "node --test scripts/search.test.mjs",
+		"check:site": "node scripts/check-site.mjs",
+		"prebuild": "node scripts/generate-social-card.mjs"
 	},
 	"dependencies": {
 		"@astrojs/mdx": "^4.3.8",
@@ -21,11 +24,13 @@
 		"@astrojs/sitemap": "^3.6.0",
 		"astro": "^5.15.1",
 		"lucide-astro": "^0.546.0",
+		"mermaid": "11.17.2",
 		"react": "^19.2.0",
 		"react-dom": "^19.2.0",
 		"rehype-katex": "^7.0.1",
 		"remark-math": "^6.0.0",
-		"sharp": "^0.34.3"
+		"sharp": "^0.34.3",
+		"katex": "0.16.47"
 	},
 	"devDependencies": {
 		"@typescript-eslint/eslint-plugin": "^8.8.1",

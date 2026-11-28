@@ -1,0 +1,27 @@
+---
+import Page from "../../layouts/Page.astro";
+import ArticleRow from "../../components/ArticleRow.astro";
+import { getWriting } from "../../utils/publication";
+import { SERIES } from "../../data/series";
+export function getStaticPaths() {
+	return Object.entries(SERIES).map(([slug, series]) => ({
+		params: { slug },
+		props: { slug, series },
+	}));
+}
+const { slug, series } = Astro.props;
+const entries = (await getWriting())
+	.filter((p) => p.data.series === slug)
+	.sort((a, b) => (a.data.seriesOrder ?? 0) - (b.data.seriesOrder ?? 0));
+---
+
+<Page title={series.title} description={series.description}
+	><p class="eyebrow">Article series</p><h1>{series.title}</h1><p class="lede">
+		{series.description}
+	</p><p class="meta">
+		{entries.length} published {entries.length === 1 ? "part" : "parts"}. Future
+		parts are added as they are written.
+	</p><ul class="content-list">
+		{entries.map((entry) => <ArticleRow entry={entry} />)}
+	</ul><p style="margin-top:2rem"><a href="/writing/">All writing</a></p></Page
+>

@@ -1,94 +1,86 @@
-# codetheorem.dev
+# Hrishikesh Agarwal — engineering publication
 
-1. <a href="#why-i-built-this">Why I Built This</a>
-2. <a href="#using-this-code">Using This Code</a>
-3. <a href="#running-locally">Running Locally</a>
-4. <a href="#navigating-writing-content">Navigating & Writing Content</a>
-5. <a href="#development-commands">Development Commands</a>
-6. <a href="#view-counter-optional">View Counter (Optional)</a>
-7. <a href="#deploying">Deploying</a>
+A static Astro publication for AI infrastructure, systems engineering, independent research directions, and philosophy. Production: https://codetheorem.github.io/.
 
-Minimal site built with Astro. I mainly record my blog posts, research worklogs, and nonsense here.
+## Develop and verify
 
-Everything here is static, since pretty much everything I wanna do involves writing and a couple of img srcs. Some monospace and a blank white/black background was enough to satisfy my eyes.
-
-There's some basic linting and prettier checks in place (commands <a href="#development-commands">below</a>) to help you keep your code clean and consistent.
-
-## Why I Built This <a id="why-i-built-this"></a>
-
-I needed something dead simple for jotting down worklogs and random thoughts without getting caught up in making the site itself look perfect. Something minimal that stays out of the way and lets me focus on writing rather than tweaking animations and styling.
-
-## Using This Code <a id="using-this-code"></a>
-
-If you found something useful here, take it. I built this for myself, but there's no reason to keep it locked down. The components are simple, the structure is straightforward, and if any of it helps you build your own site, go ahead.
-
-No need to ask permission or give credit, though I won't mind if you do and star this repo. I will, however, request you read <a href="#deploying">the deployment info below</a> and if possible, use a different deployment service. All I ask. Other than that, do whatever makes sense for your project.
-
-## Running Locally <a id="running-locally"></a>
-
-1. Clone the repository
-
-```bash
-git clone https://github.com/codetheorem/codetheorem.github.io.git
-cd codetheorem.github.io
-```
-
-2. Install dependencies
-
-```bash
-npm install
-```
-
-3. Start the development server
-
-```bash
+```sh
+npm ci
 npm run dev
+npm test
+npm run build
+npm run check:site
+npm run lint
+npm run preview
 ```
 
-and you're good to go.
+`npm test` exercises full-text matching, ranking, filter intersections, normalization, and excerpts. `check:site` runs after a build and checks generated pages, preserved URLs, local assets and link fragments, metadata, search destinations, and feeds. The GitHub Actions workflow runs the tests, production build, and generated-site checks before deploying to GitHub Pages.
 
-## Navigating & Writing Content <a id="navigating-writing-content"></a>
+There is no new application backend. Content, search data, feeds, and routes are generated at build time. The existing optional view-counter worker is separate and remains opt-in through environment configuration. No analytics credentials are required to build or read the site.
 
-This one is intentionally bare bones. You drop a markdown or mdx file in `/content/blog` or `/content/pages` (for standalone pages other than blog), add some required frontmatter (check the files currently existing in these directories for examples), and the file name becomes your slug. That's it. No build complexity, no state management, no temptation to over-engineer things. Just write and publish :)
+## Content model
 
-I made this specifically to stay focused on learning and documenting my research instead of falling into the rabbit hole of site optimization. If you're someone who wants to spend time on content rather than endlessly tuning your personal site, this approach might work for you too.
+Schemas live in `src/content.config.ts`. All collections accept Markdown and MDX.
 
-## Development Commands <a id="development-commands"></a>
+| Collection | Source | Public address |
+| --- | --- | --- |
+| Engineering articles | `src/content/blog` | `/blog/<id>/` — existing URLs preserved |
+| Philosophical essays | `src/content/philosophy` | `/philosophy/<id>/` |
+| Standalone biography | `src/content/pages` | `/<id>/` |
+| Projects and research scope | `src/content/projects` | `/projects/<id>/` |
+| Book introductions | `src/content/books` | `/books/<id>/` |
+| Book chapters | `src/content/chapters/<book>` | `/books/<book>/<chapter>/` |
+| Annotated external sources | `src/content/library` | `/library/<id>/` |
+| Engineering notes | `src/content/worklogs` | `/worklogs/<id>/` |
+| Original weekly notes | `src/content/weekly` | `/weekly/<year>-w<week>/` — existing URLs preserved |
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start the development server at `localhost:4321` |
-| `npm run build` | Build the production site to `./dist/` |
-| `npm run preview` | Preview the production build locally |
-| `npm run lint` | Run ESLint to check for code issues |
-| `npm run lint:fix` | Run ESLint and automatically fix issues |
-| `npm run format` | Check code formatting with Prettier |
-| `npm run format:write` | Format all code with Prettier |
+`/writing/` combines engineering articles and essays. Its category, topic, and series filters can be shared as URL query parameters. Search can be widened to the entire publication. `/blog/` and `/weekly/` remain useful archive pages rather than broken aliases.
 
-## View Counter (Optional) <a id="view-counter-optional"></a>
+## Add an article
 
-This site includes an optional blog post view counter powered by Cloudflare Workers and KV storage. It's completely optional and the site works perfectly fine without it.
+```yaml
+---
+title: "An explicit engineering question"
+description: "What the reader will understand after reading it."
+pubDate: 2026-11-27
+updatedDate: 2026-11-27
+category: "AI infrastructure"
+tags: [Inference, Memory]
+series: "llm-systems"
+seriesOrder: 3
+featured: false
+draft: true
+---
+```
 
-### Using the Site Without View Counter
+Remove `draft: true` when ready. Drafts are excluded from generated article routes, writing lists, related articles, search, and RSS. Set a real modification date when content changes. Dates display in Asia/Kolkata. Registered series names and descriptions live in `src/data/series.ts`; membership and order belong to article metadata. The article layout builds its table of contents from rendered headings and computes an approximate reading time at 220 words per minute.
 
-If you want to use this codebase but don't want the view counter functionality, you don't need to do anything. The view counter component gracefully handles missing configuration and won't display if the worker URL isn't set. The site will work exactly as expected without any view counts showing up.
+Use `$...$` or display math for KaTeX. Escape dollar signs used as currency. Markdown footnotes, references, syntax highlighting, code copying, and line wrapping are supported. Fenced `mermaid` blocks keep their readable source and offer on-demand rendering with a locally bundled renderer in strict security mode. Ordinary SVG illustrations can be used directly; `EngineeringDiagram.astro` provides an accessible scrolling frame for wide labeled figures. `EngineeringTable.astro` provides the equivalent for tables in MDX.
 
-### Setting Up the View Counter (If You Want It)
+Static Tokenomics SVGs have editable Mermaid counterparts and a generator under `blog/tokenomics/`. They are conceptual, public-safe illustrations, not internal architecture disclosures. No internal source or benchmark data is required to build the site.
 
-The view counter setup is intentionally complex with multiple security layers to prevent abuse to some degree. If you want to set it up, here's what you need:
+## Other collections
 
-1. Deploy the Cloudflare Worker (instructions in [worker/README.md](worker/README.md))
-2. Configure required secrets and environment variables
-3. Copy `.env.example` to `.env` and fill in your values
+A project must declare `kind`, `status`, `topics`, `order`, and `updatedDate`. Supported kinds separate professional projects, independent prototypes, research directions, and future plans. Do not infer progress from a project name. FerrumLM and FerrumData are explicitly research directions; FerrumDB is planned.
 
-For detailed setup instructions, security considerations, and implementation details, see:
-- [worker/README.md](worker/README.md) - Complete setup guide
-- [worker/CHANGELOG.md](worker/CHANGELOG.md) - Technical implementation details and security features
+A chapter declares an existing `book` ID and positive `order`. The book's introduction uses `status: Working manuscript` or `Complete`. Only published chapters belong in reader navigation.
 
-The view counter includes rate limiting, IP-based deduplication, optional API authentication, and other security features that make it production-ready but admittedly overkill for a simple blog. If you just want view counts and don't care about the security complexities, you might want to use a simpler third-party service instead.
+A library entry declares an external `url`, `author`, `kind`, topics in `tags`, and a date recording when the entry was added. Its body is an original annotation, not copied source text. Inclusion does not imply completed reading.
 
-## Deploying <a id="deploying"></a>
+## Search and feeds
 
-It's a fully static site, so deploying is a breeze.
+`/search-index.json` contains the public text of published entries. `src/utils/search.mjs` supplies matching for the browser and unit tests. All query words must match; case and diacritics are normalized. Scope, category, topic, and series filters intersect. Results use safe text nodes rather than injecting article HTML. JavaScript is needed for filtering; the original static lists remain visible if it is unavailable or search fails.
 
-I am currently using GitHub Pages to deploy this site. A GitHub Actions workflow builds and deploys the site to Pages whenever I push to `main`.
+`/rss.xml` includes engineering writing and essays with rendered content. `/worklogs/rss.xml` includes worklogs and the weekly archive. `@astrojs/sitemap` generates the sitemap. `BaseHead.astro` provides canonical, social, feed, and article metadata; article pages also emit BlogPosting structured data.
+
+## Deployment and performance
+
+`.github/workflows/deploy.yml` builds on pushes to `main` and publishes `dist/` using GitHub Pages. No custom routing service, server rewrite, or database is required. Preserve `astro.config.ts`'s production `site` value when updating metadata.
+
+The main layouts use system fonts, locally served KaTeX assets, static HTML, and small interaction scripts. Mermaid's larger renderer is dynamically imported only after a reader asks to render a diagram. No automatic animation or client-rendered application shell is used.
+
+The light theme is the default; an explicit dark-theme choice persists when browser storage is available. All text remains readable if storage or JavaScript is unavailable. Wide code, tables, math, and labeled diagrams scroll within their own containers.
+
+## Optional view counter
+
+Existing worker instructions remain in `worker/README.md`. Never commit worker secrets, private endpoints, customer material, or deployment credentials. The publication works without that worker.

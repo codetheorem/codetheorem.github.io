@@ -47,7 +47,7 @@ interface Props {
 }
 
 const { entry, previousWeek, nextWeek } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 const title = formatWeeklyTitle(entry.data);
 const weeklyDateDisplay = entry.data.dateRange
 	? `${entry.data.dateRange}, ${getJapanYear(entry.data.date)}`
@@ -55,6 +55,8 @@ const weeklyDateDisplay = entry.data.dateRange
 ---
 
 <Layout
+	headings={headings}
+	section={{ href: "/worklogs/", label: "Worklogs" }}
 	title={title}
 	description={entry.data.description}
 	breadcrumbTitle={title}
